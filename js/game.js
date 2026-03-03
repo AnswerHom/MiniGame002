@@ -1,4 +1,4 @@
-// MiniGame002 - 游戏主逻辑
+// MiniGame002 - 游戏主逻辑 v1.0.1
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -22,10 +22,27 @@ const game = {
     enemies: [],
     expOrbs: [],
     particles: [],
+    clouds: [], // 云雾效果
     spawnTimer: 0,
     spawnInterval: 2000,
-    groundY: CONFIG.groundY
+    groundY: CONFIG.groundY,
+    distance: 0 // 前进距离
 };
+
+// 初始化云雾
+function initClouds() {
+    for (let i = 0; i < 10; i++) {
+        game.clouds.push({
+            x: Math.random() * 2000,
+            y: 50 + Math.random() * 150,
+            width: 100 + Math.random() * 150,
+            speed: 10 + Math.random() * 20,
+            opacity: 0.1 + Math.random() * 0.2
+        });
+    }
+}
+
+initClouds();
 
 // 玩家
 const player = {
@@ -47,6 +64,12 @@ const player = {
     attacking: false,
     attackFrame: 0,
     color: '#00d4ff',
+    // 闪避相关
+    invincible: false,
+    invincibleTime: 0,
+    // 境界系统
+    realm: '筑基',
+    realms: ['筑基', '金丹', '元婴', '化神', '炼虚', '合体', '大乘', '渡劫'],
     // 升级
     levelUp() {
         this.level++;
@@ -54,6 +77,14 @@ const player = {
         this.hp = this.maxHp;
         this.attack += 2;
         this.requiredExp = 100 * this.level;
+        // 境界提升
+        if (this.level % 5 === 0 && this.level <= 40) {
+            const realmIndex = Math.floor(this.level / 5) - 1;
+            if (realmIndex < this.realms.length) {
+                this.realm = this.realms[realmIndex];
+                createFloatingText(this.x, this.y - 70, `突破! ${this.realm}`, '#ff00ff');
+            }
+        }
         createParticle(this.x, this.y - 30, 'gold', 20);
         createFloatingText(this.x, this.y - 50, `升级! Lv.${this.level}`, '#ffd700');
     },
@@ -91,12 +122,23 @@ const player = {
         // 自动向右移动
         this.x += this.speed * dt;
         
+        // 更新距离
+        game.distance = Math.floor(this.x / 100);
+        
         // 更新相机跟随
         CONFIG.cameraOffset = this.x - 150;
         
         // 攻击冷却
         if (this.attackCooldown > 0) {
             this.attackCooldown -= dt;
+        }
+        
+        // 闪避计时
+        if (this.invincible) {
+            this.invincibleTime -= dt;
+            if (this.invincibleTime <= 0) {
+                this.invincible = false;
+            }
         }
         
         // 攻击动画
@@ -110,6 +152,11 @@ const player = {
     // 绘制
     draw() {
         const screenX = this.x - CONFIG.cameraOffset;
+        
+        // 闪避效果 - 半透明
+        if (this.invincible) {
+            ctx.globalAlpha = 0.5 + Math.sin(Date.now() * 0.02) * 0.3;
+        }
         
         // 身体
         ctx.fillStyle = this.color;
@@ -136,11 +183,7 @@ const player = {
         }
         ctx.restore();
         
-        // 攻击范围指示器（调试用，可注释）
-        // ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-        // ctx.beginPath();
-        // ctx.arc(screenX + this.width/2, this.y - this.height/2, this.attackRange, 0, Math.PI * 2);
-        // ctx.stroke();
+        ctx.globalAlpha = 1;
     },
     // 获取屏幕坐标
     getScreenX() {
@@ -222,11 +265,14 @@ class Enemy {
         
         // 攻击玩家
         if (dist > 0 && dist < this.attackRange + player.width/2) {
-            if (this.attackCooldown <= 0) {
+            if (this.attackCooldown <= 0 && !player.invincible) {
                 this.attacking = true;
                 this.attackFrame = 0;
                 this.attackCooldown = 1.5;
                 player.hp -= this.attack;
+                // 闪避效果
+                player.invincible = true;
+                player.invincibleTime = 0.5;
                 createFloatingText(player.x, player.y - player.height, `-${this.attack}`, '#ff0000');
                 createParticle(player.x + player.width/2, player.y - player.height/2, '#ff0000', 5);
             }
@@ -441,16 +487,43 @@ function update(dt) {
 
 // 绘制背景
 function drawBackground() {
-    // 天空渐变
+    // 天空渐变 - 修仙风格
     const gradient = ctx.createLinearGradient(0, 0, 0, CONFIG.height);
-    gradient.addColorStop(0, '#0f2027');
-    gradient.addColorStop(0.5, '#203a43');
-    gradient.addColorStop(1, '#2c5364');
+    gradient.addColorStop(0, '#1a0a2e'); // 深紫
+    gradient.addColorStop(0.3, '#16213e');
+    gradient.addColorStop(0.6, '#1a3a4a');
+    gradient.addColorStop(1, '#0f2027');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
     
+    // 星星
+    ctx.fillStyle = '#ffffff';
+    for (let i = 0; i < 30; i++) {
+        const x = (i * 73 + CONFIG.cameraOffset * 0.05) % CONFIG.width;
+        const y = (i * 37) % 200;
+        const size = (i % 3) + 1;
+        ctx.globalAlpha = 0.3 + (i % 5) * 0.1;
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    
+    // 云雾效果
+    game.clouds.forEach(cloud => {
+        cloud.x -= cloud.speed * 0.016;
+        if (cloud.x + cloud.width < CONFIG.cameraOffset) {
+            cloud.x = CONFIG.cameraOffset + CONFIG.width + Math.random() * 200;
+        }
+        const screenX = cloud.x - CONFIG.cameraOffset;
+        ctx.fillStyle = `rgba(255, 255, 255, ${cloud.opacity})`;
+        ctx.beginPath();
+        ctx.ellipse(screenX, cloud.y, cloud.width / 2, 30, 0, 0, Math.PI * 2);
+        ctx.fill();
+    });
+    
     // 远山
-    ctx.fillStyle = '#1a3a4a';
+    ctx.fillStyle = '#1a2a3a';
     ctx.beginPath();
     ctx.moveTo(0, CONFIG.groundY - 50);
     for (let i = 0; i <= CONFIG.width; i += 50) {
@@ -462,8 +535,8 @@ function drawBackground() {
     ctx.closePath();
     ctx.fill();
     
-    // 山脉
-    ctx.fillStyle = '#152d3a';
+    // 仙剑宗山脉
+    ctx.fillStyle = '#152535';
     ctx.beginPath();
     ctx.moveTo(0, CONFIG.groundY - 30);
     for (let i = 0; i <= CONFIG.width; i += 30) {
@@ -476,12 +549,25 @@ function drawBackground() {
     ctx.fill();
     
     // 地面
-    ctx.fillStyle = '#2d4a3e';
+    ctx.fillStyle = '#1a2f25';
     ctx.fillRect(0, CONFIG.groundY, CONFIG.width, CONFIG.height - CONFIG.groundY);
     
     // 草地
-    ctx.fillStyle = '#3d5a4e';
+    ctx.fillStyle = '#2d4a3e';
     ctx.fillRect(0, CONFIG.groundY, CONFIG.width, 10);
+    
+    // 灵草装饰
+    ctx.fillStyle = '#3d5a4e';
+    for (let i = 0; i < CONFIG.width; i += 60) {
+        const x = i - (CONFIG.cameraOffset % 60);
+        if (x > -10 && x < CONFIG.width + 10) {
+            ctx.beginPath();
+            ctx.moveTo(x, CONFIG.groundY);
+            ctx.lineTo(x + 3, CONFIG.groundY - 8);
+            ctx.lineTo(x + 6, CONFIG.groundY);
+            ctx.fill();
+        }
+    }
 }
 
 // 绘制UI
@@ -519,13 +605,33 @@ function drawUI() {
     ctx.fillStyle = '#fff';
     ctx.font = '12px Microsoft YaHei';
     ctx.textAlign = 'center';
-    ctx.fillText(`${player.hp}/${player.maxHp}`, 120, 56);
+    ctx.fillText(`${Math.max(0, player.hp)}/${player.maxHp}`, 120, 56);
     
     // 攻击力
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 14px Microsoft YaHei';
     ctx.textAlign = 'left';
     ctx.fillText(`攻击: ${player.attack}`, 230, 35);
+    
+    // 境界显示
+    ctx.fillStyle = '#ff00ff';
+    ctx.font = 'bold 14px Microsoft YaHei';
+    ctx.textAlign = 'right';
+    ctx.fillText(`境界: ${player.realm}`, 780, 35);
+    
+    // 距离显示
+    ctx.fillStyle = '#00d4ff';
+    ctx.font = '14px Microsoft YaHei';
+    ctx.textAlign = 'left';
+    ctx.fillText(`前行: ${game.distance}米`, 230, 55);
+    
+    // 闪避提示
+    if (player.invincible) {
+        ctx.fillStyle = '#ffff00';
+        ctx.font = 'bold 12px Microsoft YaHei';
+        ctx.textAlign = 'center';
+        ctx.fillText('闪避中', player.x - CONFIG.cameraOffset + player.width/2, player.y - player.height - 20);
+    }
     
     // 游戏结束
     if (game.gameOver) {
@@ -539,8 +645,9 @@ function drawUI() {
         
         ctx.fillStyle = '#fff';
         ctx.font = '20px Microsoft YaHei';
-        ctx.fillText(`最终等级: Lv.${player.level}`, CONFIG.width/2, CONFIG.height/2 + 20);
-        ctx.fillText(`重新刷新页面重新开始`, CONFIG.width/2, CONFIG.height/2 + 50);
+        ctx.fillText(`最终等级: Lv.${player.level} ${player.realm}`, CONFIG.width/2, CONFIG.height/2 + 20);
+        ctx.fillText(`前行距离: ${game.distance}米`, CONFIG.width/2, CONFIG.height/2 + 50);
+        ctx.fillText(`刷新页面重新开始`, CONFIG.width/2, CONFIG.height/2 + 80);
     }
 }
 
