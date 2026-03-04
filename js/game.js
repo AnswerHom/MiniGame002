@@ -1472,7 +1472,8 @@ class Enemy {
         if (this.attackCooldown > 0) this.attackCooldown -= dt;
         if (this.attacking) { this.attackFrame += dt * 8; if (this.attackFrame >= 1) this.attacking = false; }
         const dist = player.x - this.x;
-        if (dist > 0 && dist < 300) this.x += this.speed * dt;
+        // 怪物会从较远距离靠近玩家（增加到600像素检测范围）
+        if (dist > 0 && dist < 600) this.x += this.speed * dt;
         if (dist > 0 && dist < this.attackRange + player.width/2 && this.attackCooldown <= 0) {
             this.attacking = true; this.attackFrame = 0; this.attackCooldown = this.special === 'fast' ? 0.8 : 1.5;
             
@@ -1672,8 +1673,8 @@ function spawnEnemy() {
         // 战斗场景：怪物从屏幕右侧涌入
         spawnX = player.x + CONFIG.width - 50 + Math.random() * 100;
     } else {
-        // 推进场景：前方生成怪物
-        spawnX = player.x + 400 + Math.random() * 200;
+        // 推进场景：在玩家前方较近处生成怪物，方便自动战斗
+        spawnX = player.x + 200 + Math.random() * 150;
     }
     
     const availableTypes = [];
