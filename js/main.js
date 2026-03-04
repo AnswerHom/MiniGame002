@@ -1,20 +1,32 @@
-// ===== v1.0.0 游戏主循环 =====
+// ===== v1.0.2 游戏主循环 =====
 
 function drawBackground() {
+    // v1.0.2: 使用场景配置
+    const scene = getScene(player.x);
+    
     // 天空
     const gradient = ctx.createLinearGradient(0, 0, 0, CONFIG.height);
-    gradient.addColorStop(0, '#1a0a2e');
-    gradient.addColorStop(1, '#2d1b4e');
+    gradient.addColorStop(0, scene.bgColor[0]);
+    gradient.addColorStop(0.5, scene.bgColor[1]);
+    gradient.addColorStop(1, scene.bgColor[2]);
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
     
+    // v1.0.2: 移除背景变色逻辑，使用场景配置
+    
     // 地面
-    ctx.fillStyle = '#1a2f25';
+    ctx.fillStyle = scene.groundColor;
     ctx.fillRect(0, CONFIG.groundY, CONFIG.width, CONFIG.height - CONFIG.groundY);
 }
 
 function update(dt) {
     if (game.gameOver) return;
+    
+    // v1.0.2: 伤害数字更新
+    game.updateDamageNumbers(dt);
+    
+    // v1.0.2: 玩家移动状态重置（由怪物检测时设置）
+    player.isMoving = true;
     
     // 玩家更新
     player.update(dt);
@@ -28,6 +40,8 @@ function update(dt) {
     
     // 怪物更新
     game.enemies.forEach(enemy => enemy.update(dt));
+    
+    // v1.0.2: 战斗逻辑 - 遇怪停下（已在enemy.update中处理）
     
     // 检测攻击
     game.enemies.forEach(enemy => {
@@ -57,6 +71,9 @@ function draw() {
     
     // 绘制玩家
     player.draw();
+    
+    // v1.0.2: 绘制伤害数字
+    game.drawDamageNumbers();
     
     // 绘制UI
     drawUI();
