@@ -162,7 +162,6 @@ const ACTIVE_SKILLS = {
     '剑气斩': { 
         name: '剑气斩', 
         icon: '⚔️', 
-       , 
         cooldown: 8, 
         damage: 2.0, 
         knockback: 100, 
