@@ -45,16 +45,34 @@ class Enemy {
         
         const dist = player.x - this.x;
         
-        // v1.0.2: 战斗逻辑 - 主角在攻击范围内时停下
-        if (dist > 0 && dist < player.attackRange) {
+        // v1.2.2: 遍历所有存活怪物，检查是否攻击范围内有怪物
+        let hasEnemyInRange = false;
+        for (const enemy of game.enemies) {
+            if (!enemy.alive) continue;
+            const enemyDist = Math.abs(player.x - enemy.x);
+            if (enemyDist < player.attackRange) {
+                hasEnemyInRange = true;
+                break;
+            }
+        }
+        
+        // v1.2.1: 战斗状态 - 攻击范围内有怪物时停止移动
+        // v1.2.2: 修复 - 只有所有怪物都清除后才恢复移动
+        if (hasEnemyInRange) {
             player.isMoving = false;
+            // 在攻击范围内则攻击
+            if (Math.abs(dist) < player.attackRange && this.attackCooldown <= 0) {
+                this.attackPlayer();
+            }
             return;
         } else {
             player.isMoving = true;
         }
         
+        // 怪物向玩家移动
         if (dist > 0 && dist < 300) this.x += this.speed * dt;
         
+        // 怪物攻击
         if (Math.abs(dist) < player.attackRange && this.attackCooldown <= 0) {
             this.attackPlayer();
         }

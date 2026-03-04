@@ -1,10 +1,7 @@
-// ===== v1.1.0 游戏主循环 =====
+// ===== v1.2.2 游戏主循环 =====
 
 function update(dt) {
     if (game.gameOver) return;
-    
-    // 玩家自动向右移动
-    player.x += player.speed * dt;
     
     // 伤害数字更新
     game.updateDamageNumbers(dt);
@@ -95,7 +92,16 @@ function startGame() {
     player.hp = player.maxHp;
     player.exp = 0;
     player.level = 1;
+    player.isMoving = true;
     requestAnimationFrame(gameLoop);
 }
+
+// v1.2.2: 点击重新开始
+const gameCanvas = document.getElementById('gameCanvas');
+gameCanvas.addEventListener('click', function() {
+    if (game.gameOver) {
+        game.restart();
+    }
+});
 
 window.onload = startGame;
