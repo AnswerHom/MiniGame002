@@ -6,7 +6,6 @@ const SCENES = [
     { name: '古墓遗迹', bgColor: ['#1a1a1a', '#2a2a2a', '#1a2a2a'], groundColor: '#2a2a2a', sky: 'night' }
 ];
 
-// 场景状态
 let sceneState = {
     clouds: [],
     stars: [],
@@ -17,14 +16,12 @@ function getScene(distance) {
     return SCENES[Math.floor(distance / 1000) % 3];
 }
 
-// 天空主题
 const SKY_THEMES = {
     day: { colors: ['#87ceeb', '#b8e0f0', '#e0f7fa'] },
     dusk: { colors: ['#ff7e5f', '#feb47b', '#ffcf9f'] },
     night: { colors: ['#0c1445', '#1a2a5c', '#2a3a6c'] }
 };
 
-// 云朵配置
 const CLOUD_CONFIG = {
     minSize: 80, maxSize: 150,
     minInterval: 5000, maxInterval: 10000,
@@ -32,61 +29,50 @@ const CLOUD_CONFIG = {
     color: 'rgba(255,255,255,0.6)'
 };
 
-// 星星配置
 const STAR_CONFIG = {
     count: 25, minSize: 2, maxSize: 4,
     colors: ['#ffffff', '#fffacd', '#e0ffff'],
     twinkleSpeed: 2
 };
 
-// 地面细节配置
 const GROUND_DETAIL_CONFIG = {
-    grassColors: ['#90cdf4', '#68d391'],
     flowerColors: ['#ffb6c1', '#ffd700', '#ff69b4'],
-    flowerSize: 6,
-    stoneColors: ['#696969', '#808080'],
-    stoneSize: { min: 10, max: 25 }
+    stoneColors: ['#696969', '#808080']
 };
 
 function drawBackground() {
     if (!player) return;
     const scene = getScene(player.x);
-    const cameraX = player.x - 100;
+    var cameraX = player.x - 100;
     sceneState.cameraX = cameraX;
     
-    // 天空
-    const skyTheme = SKY_THEMES[scene.sky] || SKY_THEMES.night;
-    const gradient = ctx.createLinearGradient(0, 0, 0, CONFIG.height);
+    var skyTheme = SKY_THEMES[scene.sky] || SKY_THEMES.night;
+    var gradient = ctx.createLinearGradient(0, 0, 0, CONFIG.height);
     gradient.addColorStop(0, skyTheme.colors[0]);
     gradient.addColorStop(0.5, skyTheme.colors[1]);
     gradient.addColorStop(1, skyTheme.colors[2]);
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
     
-    // 绘制星星
     if (scene.sky === 'night') {
         drawStars(cameraX);
     }
     
-    // 绘制云朵
     if (scene.sky !== 'night') {
         drawClouds(cameraX);
     }
     
-    // 地面
     ctx.fillStyle = scene.groundColor;
     ctx.fillRect(0, CONFIG.groundY, CONFIG.width, CONFIG.height - CONFIG.groundY);
     
-    // 地面细节
     drawGroundDetails(cameraX);
 }
 
 function drawClouds(cameraX) {
-    // 简单的云朵绘制
-    const scene = getScene(player.x);
+    if (!player) return;
+    var scene = getScene(player.x);
     if (scene.sky === 'night') return;
     
-    // 更新云朵
     if (!sceneState.clouds.length || Math.random() < 0.01) {
         sceneState.clouds.push({
             x: CONFIG.width + 100,
@@ -95,12 +81,11 @@ function drawClouds(cameraX) {
         });
     }
     
-    // 绘制云朵
-    sceneState.clouds = sceneState.clouds.filter(cloud => {
+    sceneState.clouds = sceneState.clouds.filter(function(cloud) {
         cloud.x -= 20 * 0.016;
         if (cloud.x + cloud.size < 0) return false;
         
-        const screenX = cloud.x - cameraX * 0.5;
+        var screenX = cloud.x - cameraX * 0.5;
         ctx.fillStyle = CLOUD_CONFIG.color;
         ctx.beginPath();
         ctx.arc(screenX, cloud.y, cloud.size * 0.5, 0, Math.PI * 2);
@@ -113,7 +98,7 @@ function drawClouds(cameraX) {
 
 function drawStars(cameraX) {
     if (!sceneState.stars.length) {
-        for (let i = 0; i < STAR_CONFIG.count; i++) {
+        for (var i = 0; i < STAR_CONFIG.count; i++) {
             sceneState.stars.push({
                 x: Math.random() * CONFIG.width * 2,
                 y: Math.random() * (CONFIG.groundY - 50),
@@ -122,12 +107,12 @@ function drawStars(cameraX) {
         }
     }
     
-    const time = Date.now() / 1000;
-    sceneState.stars.forEach(star => {
-        const screenX = star.x - cameraX * 0.2;
+    var time = Date.now() / 1000;
+    sceneState.stars.forEach(function(star) {
+        var screenX = star.x - cameraX * 0.2;
         if (screenX < -10 || screenX > CONFIG.width + 10) return;
         
-        const alpha = 0.5 + 0.5 * Math.sin(time * 2 + star.x);
+        var alpha = 0.5 + 0.5 * Math.sin(time * 2 + star.x);
         ctx.fillStyle = '#ffffff';
         ctx.globalAlpha = alpha;
         ctx.beginPath();
@@ -138,10 +123,11 @@ function drawStars(cameraX) {
 }
 
 function drawGroundDetails(cameraX) {
-    const offset = player.x - 100;
+    if (!player) return;
+    var offset = player.x - 100;
     
     if (!sceneState.groundDetails.length) {
-        for (let i = 0; i < 20; i++) {
+        for (var i = 0; i < 20; i++) {
             sceneState.groundDetails.push({
                 x: Math.random() * CONFIG.width * 2,
                 type: Math.random() > 0.5 ? 'flower' : 'stone'
@@ -149,8 +135,8 @@ function drawGroundDetails(cameraX) {
         }
     }
     
-    sceneState.groundDetails.forEach(detail => {
-        const screenX = detail.x - offset;
+    sceneState.groundDetails.forEach(function(detail) {
+        var screenX = detail.x - offset;
         if (screenX < -50 || screenX > CONFIG.width + 50) return;
         
         if (detail.type === 'flower') {
