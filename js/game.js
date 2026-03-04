@@ -6,10 +6,7 @@
 // v1.6.1: 战斗体验优化 - 自动前进/自动停下战斗/自动继续推进
 // v1.6.0: 打击感优化 + 音效系统 + Boss战体验
 // v1.5.0: 战斗状态机 + 战斗场景分离 + 战斗节奏优化 + UI界面重构
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
 
-const CONFIG = { width: 800, height: 450, groundY: 380, cameraOffset: 0 };
 canvas.width = CONFIG.width;
 canvas.height = CONFIG.height;
 
