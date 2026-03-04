@@ -1,0 +1,16 @@
+{
+  "lastCheckTime": 0,
+  "lastDocVersion": "v1.0.2",
+  "lastDocPath": "/root/.openclaw/workspace-client/work/MiniGame002/doc/游戏设计文档_v1.0.2.md",
+  "implementedFeatures": [
+    "技能系统实现（3个技能）",
+    "技能UI显示",
+    "4种怪物实现",
+    "怪物生成逻辑",
+    "击杀计数",
+    "连杀系统",
+    "Debuff减速效果",
+    "场景切换（3个场景）",
+    "UI优化"
+  ]
+}
