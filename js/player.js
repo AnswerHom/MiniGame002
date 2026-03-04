@@ -9,7 +9,7 @@ const player = {
     hp: 100,
     maxHp: 100,
     attack: 10,
-    speed: 120,  // v1.0.2: 2px/帧 @60fps = 120px/秒
+    speed: 80,  // v1.0.2: 2px/帧 @60fps = 120px/秒
     attackCooldown: 0,
     attackRange: 80,  // v1.0.2: 60px → 80px
     attackInterval: 1.2,  // v1.0.2: 攻击间隔1.2秒

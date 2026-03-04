@@ -3,13 +3,13 @@
 // v1.0.2: 小怪属性修正（速度单位：px/秒）
 const ENEMY_TYPES = {
     // 阴魂：白色半透明鬼火，淡淡光晕，圆形
-    阴魂: { hp: 20, attack: 5, exp: 10, speed: 50, color: '#e2e8f0', size: 25, realmColor: '#718096' },
+    阴魂: { hp: 20, attack: 5, exp: 10, speed: 20, color: '#e2e8f0', size: 25, realmColor: '#718096' },
     // 妖狼：灰色毛皮，四足奔跑形态
-    妖狼: { hp: 30, attack: 8, exp: 15, speed: 80, color: '#718096', size: 35, realmColor: '#718096' },
+    妖狼: { hp: 30, attack: 8, exp: 15, speed: 50, color: '#718096', size: 35, realmColor: '#718096' },
     // 毒蛛：黑色背甲，红色斑点，8条腿
-    毒蛛: { hp: 25, attack: 10, exp: 12, speed: 40, color: '#1a202c', size: 30, realmColor: '#1a202c' },
+    毒蛛: { hp: 25, attack: 10, exp: 12, speed: 25, color: '#1a202c', size: 30, realmColor: '#1a202c' },
     // 僵尸：灰绿色皮肤，双臂平伸
-    僵尸: { hp: 40, attack: 12, exp: 20, speed: 30, color: '#68d391', size: 40, realmColor: '#68d391' }
+    僵尸: { hp: 40, attack: 12, exp: 20, speed: 20, color: '#68d391', size: 40, realmColor: '#68d391' }
 };
 
 // v1.0.2: 境界颜色区分
