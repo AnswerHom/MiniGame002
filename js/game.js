@@ -1,7 +1,7 @@
 // ===== v1.1.0 游戏状态 =====
 
 const game = {
-    state: 'start',  // start:开始界面, playing:游戏中, gameover:游戏结束
+    state: 'playing',  // v1.1.0: 直接开始，无需开始界面
     running: true,
     gameOver: false,
     lastTime: 0,
