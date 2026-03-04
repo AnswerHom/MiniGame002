@@ -1,157 +1,7 @@
-// MiniGame002 - 游戏主逻辑 v1.11.0
-// v1.11.0: 怪物形象完整实现 + 战斗表现优化
-// v1.10.1: 怪物形象细节化 - 让程序能画出具体怪物（文档已更新）
-// v1.10.0: UI优化 + 怪物形象丰富化
-// v1.7.0: 技能系统雏形 + 战斗爽感提升
-// v1.6.1: 战斗体验优化 - 自动前进/自动停下战斗/自动继续推进
-// v1.6.0: 打击感优化 + 音效系统 + Boss战体验
-// v1.5.0: 战斗状态机 + 战斗场景分离 + 战斗节奏优化 + UI界面重构
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+// systems.js - 系统配置分离
+// 从 game.js 提取的所有配置数据
 
-const CONFIG = { width: 800, height: 450, groundY: 380, cameraOffset: 0 };
-canvas.width = CONFIG.width;
-canvas.height = CONFIG.height;
-
-const REALMS = [
-    { name: '筑基', minLevel: 1 }, { name: '金丹', minLevel: 5 },
-    { name: '元婴', minLevel: 10 }, { name: '化神', minLevel: 15 },
-    { name: '炼虚', minLevel: 20 }, { name: '合体', minLevel: 25 },
-    { name: '大乘', minLevel: 30 }, { name: '渡劫', minLevel: 35 },
-    { name: '飞升', minLevel: 45 }
-];
-
-// 境界加成配置
-const REALM_BONUS = {
-    '筑基': 1.0, '金丹': 1.2, '元婴': 1.5, '化神': 2.0,
-    '炼虚': 2.5, '合体': 3.0, '大乘': 4.0, '渡劫': 5.0, '飞升': 6.0
-};
-
-// 装备等级颜色
-const EQUIP_COLORS = {
-    '凡品': '#ffffff',
-    '精品': '#00ff00',
-    '极品': '#0088ff',
-    '仙品': '#ff00ff'
-};
-
-// 装备类型定义
-const EQUIP_TYPES = {
-    '武器': { slot: 'weapon', stat: 'attack', statName: '攻击', icon: '⚔️' },
-    '防具': { slot: 'armor', stat: 'defense', statName: '防御', icon: '🛡️' },
-    '饰品': { slot: 'accessory', stat: 'critRate', statName: '暴击', icon: '💍' }
-};
-
-// 装备数据库
-const EQUIP_DATABASE = {
-    '武器': {
-        '凡品': [
-            { name: '铁剑', attack: 5 },
-            { name: '木剑', attack: 3 }
-        ],
-        '精品': [
-            { name: '精钢剑', attack: 12 },
-            { name: '玄铁剑', attack: 15 }
-        ],
-        '极品': [
-            { name: '青虹剑', attack: 25 },
-            { name: '赤焰剑', attack: 28 }
-        ],
-        '仙品': [
-            { name: '倚天剑', attack: 50 },
-            { name: '屠龙刀', attack: 55 }
-        ]
-    },
-    '防具': {
-        '凡品': [
-            { name: '粗布衣', defense: 3 },
-            { name: '麻衣', defense: 2 }
-        ],
-        '精品': [
-            { name: '铁甲', defense: 8 },
-            { name: '皮甲', defense: 6 }
-        ],
-        '极品': [
-            { name: '锁子甲', defense: 15 },
-            { name: '鳞甲', defense: 18 }
-        ],
-        '仙品': [
-            { name: '天蚕丝甲', defense: 35 },
-            { name: '金缕衣', defense: 40 }
-        ]
-    },
-    '饰品': {
-        '凡品': [
-            { name: '粗糙戒指', critRate: 0.01 },
-            { name: '普通项链', critRate: 0.01 }
-        ],
-        '精品': [
-            { name: '精金戒指', critRate: 0.03 },
-            { name: '翡翠项链', critRate: 0.03 }
-        ],
-        '极品': [
-            { name: '暴击戒指', critRate: 0.06 },
-            { name: '敏捷项链', critRate: 0.05 }
-        ],
-        '仙品': [
-            { name: '捆仙绳', critRate: 0.12 },
-            { name: '定风珠', critRate: 0.10 }
-        ]
-    }
-};
-
-// 副本配置
-const DUNGEONS = {
-    '阴魂洞': { 
-        name: '阴魂洞', difficulty: 1, 
-        enemies: ['阴魂'], enemyCount: 10, 
-        rewardExp: 500, rewardEquip: '仙品',
-        description: '击败10只阴魂'
-    },
-    '妖狼谷': { 
-        name: '妖狼谷', difficulty: 2, 
-        enemies: ['妖狼'], enemyCount: 5, 
-        rewardExp: 800, rewardEquip: '仙品',
-        description: '击败5只妖狼'
-    },
-    '万蛛巢': { 
-        name: '万蛛巢', difficulty: 3, 
-        enemies: ['毒蛛'], enemyCount: 3, 
-        rewardExp: 1200, rewardEquip: '仙品',
-        description: '击败3只毒蛛'
-    },
-    '僵尸陵': { 
-        name: '僵尸陵', difficulty: 3, 
-        enemies: ['僵尸'], enemyCount: 2, 
-        rewardExp: 1500, rewardEquip: '仙品',
-        description: '击败2只僵尸'
-    }
-};
-
-function getRealm(level) {
-    for (let i = REALMS.length - 1; i >= 0; i--) {
-        if (level >= REALMS[i].minLevel) return REALMS[i];
-    }
-    return REALMS[0];
-}
-
-const SCENES = [
-    { name: '山野之路', bgColor: ['#1a0a2e', '#2d1b4e', '#1a3a5c'], groundColor: '#1a2f25' },
-    { name: '幽林深处', bgColor: ['#0a1a0a', '#1a2d1a', '#1a3a2a'], groundColor: '#1a2a1a' },
-    { name: '古墓遗迹', bgColor: ['#1a1a1a', '#2a2a2a', '#1a2a2a'], groundColor: '#2a2a2a' }
-];
-
-function getScene(distance) {
-    return SCENES[Math.floor(distance / 1000) % 3];
-}
-
-// v1.5.0 战斗状态机
-const BATTLE_STATES = {
-    ADVANCE: 'advance',    // 推进状态：主角自动前进
-    COMBAT: 'combat',      // 战斗状态：与怪物战斗
-    VICTORY: 'victory'     // 战斗胜利：继续推进
-};
-
+// ===== 武器配置 =====
 const WEAPONS = {
     剑: { name: '剑', range: 80, attackSpeed: 1.0, baseAttack: 10, attackMult: 1.0, speedMult: 1.0, color: '#C0C0C0', icon: '🗡️' },
     刀: { name: '刀', range: 70, attackSpeed: 0.8, baseAttack: 15, attackMult: 1.5, speedMult: 0.8, color: '#1a1a1a', icon: '⚔️' },
@@ -160,13 +10,12 @@ const WEAPONS = {
 
 // 怒气技能
 const RAGE_SKILLS = {
-    剑意·万剑归宗: { name: '剑意·万剑归宗', weapon: '剑', damage: 50, range: 'screen', icon: '🗡️✨' },
-    刀意·裂空斩: { name: '刀意·裂空斩', weapon: '刀', damage: 100, range: 'line', icon: '⚔️💥' },
-    枪意·龙枪突刺: { name: '枪意·龙枪突刺', weapon: '长枪', damage: 80, range: 'rect', icon: '🔱🐉' }
+    '剑意·万剑归宗': { name: '剑意·万剑归宗', weapon: '剑', damage: 50, range: 'screen', icon: '🗡️✨' },
+    '刀意·裂空斩': { name: '刀意·裂空斩', weapon: '刀', damage: 100, range: 'line', icon: '⚔️💥' },
+    '枪意·龙枪突刺': { name: '枪意·龙枪突刺', weapon: '长枪', damage: 80, range: 'rect', icon: '🔱🐉' }
 };
 
-// ===== v1.1.0 新增系统 =====
-
+// ===== 装备品质 =====
 const EQUIP_QUALITY = {
     凡品: { color: '#ffffff', mult: 1.0 },
     精品: { color: '#00ff00', mult: 1.5 },
@@ -174,7 +23,15 @@ const EQUIP_QUALITY = {
     仙品: { color: '#ff00ff', mult: 3.0 }
 };
 
-// v1.1.0 境界突破配置
+// 装备颜色映射
+const EQUIP_COLORS = {
+    '凡品': '#ffffff',
+    '精品': '#00ff00',
+    '极品': '#0088ff',
+    '仙品': '#ff00ff'
+};
+
+// ===== v1.1.0 境界突破配置 =====
 const REALM_BREAKTHROUGH = {
     筑基: { requiredLevel: 5, guardian: '阴魂', guardianMult: 1 },
     金丹: { requiredLevel: 10, guardian: '妖狼', guardianMult: 2 },
@@ -186,9 +43,7 @@ const REALM_BREAKTHROUGH = {
     渡劫: { requiredLevel: 40, guardian: '僵尸', guardianMult: 8 }
 };
 
-// ===== v1.2.0 炼丹系统 =====
-
-// 药材数据库
+// ===== v1.2.0 炼丹系统 - 药材数据库 =====
 const HERBS = {
     '止血草': { level: 1, name: '止血草', icon: '🌿', color: '#44ff44' },
     '灵气花': { level: 2, name: '灵气花', icon: '🌸', color: '#ff88ff' },
@@ -206,9 +61,7 @@ const RECIPES = {
     '升仙丹': { name: '升仙丹', ingredients: { '九天雪莲': 1 }, effect: 'revive', value: 1, icon: '🌟' }
 };
 
-// ===== v1.2.0 灵宠系统 =====
-
-// 灵宠数据库
+// ===== v1.2.0 灵宠系统 - 灵宠数据库 =====
 const PETS = {
     '小狐狸': { name: '小狐狸', quality: '普通', icon: '🦊', skill: 'attackBuff', skillName: '攻击辅助', attackBonus: 5, defenseBonus: 0, speedBonus: 0, catchRate: 0.8 },
     '青蛇': { name: '青蛇', quality: '优秀', icon: '🐍', skill: 'slow', skillName: '减速敌人', attackBonus: 3, defenseBonus: 2, speedBonus: 0, catchRate: 0.5 },
@@ -224,9 +77,7 @@ const PET_QUALITY_COLORS = {
     '传说': '#ff00ff'
 };
 
-// ===== v1.3.0 仙侣系统 =====
-
-// 仙侣数据库
+// ===== v1.3.0 仙侣系统 - 仙侣数据库 =====
 const COMPANIONS = {
     '素女': { name: '素女', quality: '普通', icon: '👩', skill: 'lifeBonus', skillName: '生命加成', lifeBonus: 50, attackBonus: 0, realmRequired: '筑基', description: '普通仙侣，生命加成' },
     '剑仙': { name: '剑仙', quality: '优秀', icon: '🗡️', skill: 'attackBonus', skillName: '攻击加成', lifeBonus: 0, attackBonus: 15, realmRequired: '金丹', description: '优秀仙侣，攻击加成' },
@@ -272,14 +123,12 @@ const MOUNT_QUALITY_COLORS = {
 
 // ===== v1.4.0 符文系统配置 =====
 const RUNES = {
-    // v1.4.0 原有符文
     '力量符文': { name: '力量符文', quality: '普通', icon: '💪', stat: 'attack', statValue: 0.05 },
     '坚固符文': { name: '坚固符文', quality: '普通', icon: '🛡️', stat: 'defense', statValue: 0.05 },
     '敏捷符文': { name: '敏捷符文', quality: '普通', icon: '⚡', stat: 'speed', statValue: 0.05 },
     '暴击符文': { name: '暴击符文', quality: '稀有', icon: '💥', stat: 'critRate', statValue: 0.03 },
     '生命符文': { name: '生命符文', quality: '稀有', icon: '❤️', stat: 'maxHp', statValue: 0.10 },
     '神圣符文': { name: '神圣符文', quality: '传说', icon: '✨', stat: 'skillDamage', statValue: 0.15 },
-    // v1.9.0 新增符文
     '防御符文': { name: '防御符文', quality: '普通', icon: '🛡️', stat: 'defense', statValue: 0.05 },
     '速度符文': { name: '速度符文', quality: '普通', icon: '🏃', stat: 'speed', statValue: 0.05 },
     '吸血符文': { name: '吸血符文', quality: '稀有', icon: '🩸', stat: 'lifesteal', statValue: 0.05 },
@@ -299,11 +148,7 @@ const COMBO_SKILLS = {
     20: { name: '连携技·大', damageMult: 2.0, color: '#ff00ff', text: '连击!!!' }
 };
 
-for (let i = 0; i < 8; i++) game.clouds.push({ x: Math.random() * 2000, y: 50 + Math.random() * 150, width: 100 + Math.random() * 150, speed: 10 + Math.random() * 20, opacity: 0.1 + Math.random() * 0.2 });
-for (let i = 0; i < 50; i++) game.stars.push({ x: Math.random() * CONFIG.width, y: Math.random() * (CONFIG.groundY - 100), size: 1 + Math.random() * 2, twinkle: Math.random() * Math.PI * 2, speed: 1 + Math.random() * 3 });
-for (let i = 0; i < 30; i++) game.grass.push({ x: i * 60 + Math.random() * 30, height: 8 + Math.random() * 12, sway: Math.random() * Math.PI * 2 });
-
-// v1.7.0 主动技能系统
+// ===== v1.7.0 主动技能系统 =====
 const ACTIVE_SKILLS = {
     '御剑术': { 
         name: '御剑术', 
@@ -344,9 +189,109 @@ const ACTIVE_SKILLS = {
     }
 };
 
+// 被动技能
 const SKILLS = {
     御剑术: { unlockLevel: 5, cooldown: 5, damage: 1.5, name: '御剑术', icon: '🗡️' },
     剑气斩: { unlockLevel: 10, cooldown: 8, damage: 2.0, name: '剑气斩', icon: '⚔️' },
     护体神光: { unlockLevel: 15, cooldown: 15, duration: 3, name: '护体神光', icon: '🛡️' }
 };
 
+// ===== 怪物类型配置 =====
+const ENEMY_TYPES = {
+    阴魂: { minLevel: 1, hp: 20, attack: 5, exp: 20, speed: 50, color: '#7b2d8e', special: null },
+    妖狼: { minLevel: 3, hp: 35, attack: 8, exp: 35, speed: 60, color: '#8B4513', special: 'pack' },
+    毒蛛: { minLevel: 5, hp: 45, attack: 12, exp: 45, speed: 45, color: '#2E8B57', special: 'poison' },
+    僵尸: { minLevel: 8, hp: 80, attack: 15, exp: 80, speed: 30, color: '#556B2F', special: 'regen' },
+    鬼火: { minLevel: 10, hp: 30, attack: 20, exp: 50, speed: 80, color: '#00CED1', special: 'phase' },
+    兽灵: { minLevel: 12, hp: 100, attack: 25, exp: 100, speed: 55, color: '#FF4500', special: 'frenzy' },
+    骨魔: { minLevel: 15, hp: 150, attack: 30, exp: 150, speed: 35, color: '#F5F5DC', special: 'armor' },
+    血魔: { minLevel: 18, hp: 200, attack: 35, exp: 200, speed: 50, color: '#DC143C', special: 'drain' },
+    魔狼: { minLevel: 20, hp: 180, attack: 40, exp: 180, speed: 70, color: '#4B0082', special: 'pack' },
+    魔兽: { minLevel: 25, hp: 300, attack: 50, exp: 300, speed: 45, color: '#8B0000', special: 'smash' }
+};
+
+// ===== 境界配置 =====
+const REALMS = [
+    { name: '凡人', minLevel: 1, hpMult: 1.0, attackMult: 1.0, defenseMult: 1.0, speedMult: 1.0, color: '#ffffff' },
+    { name: '筑基', minLevel: 5, hpMult: 1.5, attackMult: 1.3, defenseMult: 1.2, speedMult: 1.1, color: '#00ff00' },
+    { name: '金丹', minLevel: 10, hpMult: 2.0, attackMult: 1.6, defenseMult: 1.5, speedMult: 1.2, color: '#0088ff' },
+    { name: '元婴', minLevel: 15, hpMult: 2.5, attackMult: 2.0, defenseMult: 1.8, speedMult: 1.3, color: '#ff00ff' },
+    { name: '化神', minLevel: 20, hpMult: 3.0, attackMult: 2.5, defenseMult: 2.2, speedMult: 1.4, color: '#ff8800' },
+    { name: '炼虚', minLevel: 25, hpMult: 3.5, attackMult: 3.0, defenseMult: 2.5, speedMult: 1.5, color: '#ffff00' },
+    { name: '合体', minLevel: 30, hpMult: 4.0, attackMult: 3.5, defenseMult: 3.0, speedMult: 1.6, color: '#00ffff' },
+    { name: '大乘', minLevel: 35, hpMult: 5.0, attackMult: 4.0, defenseMult: 3.5, speedMult: 1.8, color: '#ff0000' },
+    { name: '渡劫', minLevel: 40, hpMult: 6.0, attackMult: 5.0, defenseMult: 4.0, speedMult: 2.0, color: '#ffd700' }
+];
+
+// ===== 场景配置 =====
+const SCENES = {
+    '竹林': { 
+        name: '竹林', 
+        background: '#1a472a', 
+        groundColor: '#2d5a3d', 
+        enemyType: ['阴魂', '妖狼'], 
+        music: 'bamboo',
+        special: 'calm'
+    },
+    '荒地': { 
+        name: '荒地', 
+        background: '#3d2d1a', 
+        groundColor: '#5a4a2d', 
+        enemyType: ['阴魂', '毒蛛'], 
+        music: 'wasteland',
+        special: 'dangerous'
+    },
+    '古墓': { 
+        name: '古墓', 
+        background: '#1a1a2d', 
+        groundColor: '#2d2d4a', 
+        enemyType: ['僵尸', '鬼火'], 
+        music: 'dungeon',
+        special: 'scary'
+    },
+    '山谷': { 
+        name: '山谷', 
+        background: '#2d1a3d', 
+        groundColor: '#4a2d5a', 
+        enemyType: ['骨魔', '血魔'], 
+        music: 'valley',
+        special: 'treasure'
+    },
+    '深渊': { 
+        name: '深渊', 
+        background: '#0a0a15', 
+        groundColor: '#15152d', 
+        enemyType: ['魔狼', '魔兽'], 
+        music: 'abyss',
+        special: 'ultimate'
+    }
+};
+
+// 导出模块
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        WEAPONS,
+        RAGE_SKILLS,
+        EQUIP_QUALITY,
+        EQUIP_COLORS,
+        REALM_BREAKTHROUGH,
+        HERBS,
+        RECIPES,
+        PETS,
+        PET_QUALITY_COLORS,
+        COMPANIONS,
+        COMPANION_QUALITY_COLORS,
+        SECTIONS,
+        SECTION_TASKS,
+        MOUNTS,
+        MOUNT_QUALITY_COLORS,
+        RUNES,
+        RUNE_QUALITY_COLORS,
+        COMBO_SKILLS,
+        ACTIVE_SKILLS,
+        SKILLS,
+        ENEMY_TYPES,
+        REALMS,
+        SCENES
+    };
+}
