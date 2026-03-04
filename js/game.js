@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // MiniGame002 v1.0.0 - 简单修仙推图游戏
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -7,6 +8,8 @@ canvas.width = CONFIG.width;
 canvas.height = CONFIG.height;
 
 // 游戏状态
+=======
+>>>>>>> 16e6a1e169f02366c10fccb18f50dc9355d32d4b
 const game = {
     running: true,
     gameOver: false,
@@ -15,6 +18,7 @@ const game = {
     lastTime: 0
 };
 
+<<<<<<< HEAD
 // 主角
 const player = {
     x: 100,
@@ -302,3 +306,5 @@ function startGame() {
 }
 
 window.onload = startGame;
+=======
+>>>>>>> 16e6a1e169f02366c10fccb18f50dc9355d32d4b

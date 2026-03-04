@@ -46,16 +46,10 @@ js/
 
 ### ✅ 已完成
 - [x] **config.js** - 配置数据分离
-- [x] **player.js** - 玩家模块分离
-- [x] **enemy.js** - 怪物模块分离
-- [x] **main.js** - 入口和循环
-- [x] **ui.js** - UI界面模块
-- [x] **systems.js** - 系统配置
+- [x] **player.js** - 玩家模块
+- [x] **enemy.js** - 怪物模块
+- [x] **main.js** - 游戏入口、循环
+- [x] **ui.js** - UI界面
 
 ### ⏳ 待处理
-- [ ] **inventory.js** - 背包系统
-- [ ] **equipment.js** - 装备系统
-- [ ] **skills.js** - 技能系统
-- [ ] **dungeon.js** - 副本系统
-- [ ] **scene.js** - 场景管理
-- [ ] **utils.js** - 工具函数
+- [ ] **systems.js** - 系统配置（WEAPONS等，可选拆分）
