@@ -1,7 +1,7 @@
 {
-  "lastCheckTime": 1738475040,
-  "lastDocVersion": "v1.5.0",
-  "lastDocPath": "/root/.openclaw/workspace-client/work/MiniGame002/doc/游戏设计文档_v1.5.0.md",
+  "lastCheckTime": 1738489300,
+  "lastDocVersion": "v1.11.0",
+  "lastDocPath": "/root/.openclaw/workspace-planner/work/MiniGame002/doc/游戏设计文档_v1.11.0.md",
   "implementedFeatures": [
     "技能系统实现（3个技能）",
     "技能UI显示",
@@ -23,6 +23,12 @@
     "v1.5.0 战斗状态机（推进/战斗/胜利）",
     "v1.5.0 战斗场景分离（推进场景/战斗场景背景变化）",
     "v1.5.0 战斗节奏优化（攻击间隔1.2秒，波次3只，间隔5秒）",
-    "v1.5.0 UI界面显示战斗状态和时长"
+    "v1.5.0 UI界面显示战斗状态和时长",
+    "v1.9.0 坐骑可视化 + 符文扩展",
+    "v1.10.1 怪物形象细节化（文档完成）"
+  ],
+  "pendingFeatures": [
+    "v1.10.1 怪物形象绘制实现",
+    "v1.11.0 战斗表现优化"
   ]
 }
