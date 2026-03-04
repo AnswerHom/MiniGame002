@@ -1,7 +1,7 @@
 {
   "lastCheckTime": 1740428700,
-  "lastDocVersion": "v1.12.0",
-  "lastDocPath": "/root/.openclaw/workspace-client/work/MiniGame002/doc/游戏设计文档_v1.12.0.md",
+  "lastDocVersion": "v1.11.0",
+  "lastDocPath": "/root/.openclaw/workspace-client/work/MiniGame002/doc/游戏设计文档_v1.11.0.md",
   "implementedFeatures": [
     "技能系统实现（3个技能）",
     "技能UI显示",
@@ -27,19 +27,7 @@
     "v1.9.0 坐骑可视化 + 符文扩展",
     "v1.10.1 怪物形象细节化（文档完成）",
     "v1.10.1 怪物形象绘制实现（12种新形态）",
-    "v1.11.0 战斗表现优化（打击特效、死亡光芒、受伤闪白）",
-    "v1.12.0 代码模块化重构（config.js分离）",
-    "v1.12.0 存档系统（3个槽位）",
-    "v1.12.0 自动存档（每30秒）",
-    "v1.12.0 退出时强制存档",
-    "v1.12.0 新手引导系统（7步引导）",
-    "v1.12.0 存档UI界面（M键打开）",
-    "v1.12.0 引导UI界面（H键重置）"
+    "v1.11.0 战斗表现优化（打击特效、死亡光芒、受伤闪白）"
   ],
-  "pendingFeatures": [
-    "性能优化（对象池、视锥剔除、分层渲染）",
-    "内存优化",
-    "多存档槽位扩展（超过3个）",
-    "提示系统"
-  ]
+  "pendingFeatures": []
 }
