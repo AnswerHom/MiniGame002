@@ -1,24 +1,9 @@
-// ===== 键盘控制 =====
-const keys = {
-    left: false,
-    right: false,
-    attack: false
-};
-
-document.addEventListener('keydown', (e) => {
-    // v1.1.0: 移除键盘控制，纯自动挂机
-});
-
-document.addEventListener('keyup', (e) => {
-    // v1.1.0: 移除键盘控制
-});
-
-// ===== 游戏主循环 =====
+// ===== v1.1.0 游戏主循环 =====
 
 function update(dt) {
     if (game.gameOver) return;
     
-    // v1.1.0: 玩家自动持续向右移动
+    // 玩家自动向右移动
     player.x += player.speed * dt;
     
     // 伤害数字更新
@@ -37,7 +22,7 @@ function update(dt) {
     // 怪物更新
     game.enemies.forEach(enemy => enemy.update(dt));
     
-    // v1.1.0: 玩家自动攻击范围内的敌人
+    // 玩家自动攻击
     game.enemies.forEach(enemy => {
         if (!enemy.alive) return;
         const dist = Math.abs(player.x - enemy.x);
@@ -57,8 +42,6 @@ function update(dt) {
 
 function draw() {
     ctx.clearRect(0, 0, CONFIG.width, CONFIG.height);
-    
-    // v1.1.0: 移除开始界面，游戏加载后直接开始
     
     drawBackground();
     
@@ -86,14 +69,6 @@ function draw() {
         ctx.font = '24px Microsoft YaHei';
         ctx.fillText('等级: Lv.' + player.level, CONFIG.width / 2, CONFIG.height / 2 + 10);
         ctx.fillText('击杀: ' + game.killCount, CONFIG.width / 2, CONFIG.height / 2 + 45);
-        
-        // v1.0.8: 重新开始提示
-        ctx.fillStyle = '#a0aec0';
-        ctx.font = '20px Microsoft YaHei';
-        const pulse = Math.sin(Date.now() / 300) * 0.3 + 0.7;
-        ctx.globalAlpha = pulse;
-        ctx.fillText('点击或按任意键重新开始', CONFIG.width / 2, CONFIG.height / 2 + 100);
-        ctx.globalAlpha = 1.0;
     }
 }
 
@@ -110,7 +85,6 @@ function gameLoop(timestamp) {
 }
 
 function startGame() {
-    // v1.1.0: 游戏加载后直接开始，无需点击
     game.lastTime = performance.now();
     game.enemies = [];
     game.killCount = 0;
