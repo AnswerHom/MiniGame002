@@ -22,13 +22,13 @@ const player = {
     hitFlash: 0,
     isMoving: true,
     
-    // v1.1.0: Q版水墨风配色
-    robeColor: '#e8e8e8',      // 月白色长袍
-    robeAccentColor: '#a8e6cf', // 淡青色衣领袖口
-    hairColor: '#1a1a1a',      // 墨黑头发
-    hairAccentColor: '#e74c3c', // 红色发带
+    // v1.2.0: Q版水墨风配色（修正后与需求文档一致）
+    robeColor: '#f0f5f9',      // 月白色长袍
+    robeAccentColor: '#81e6d9', // 淡青色衣领袖口
+    hairColor: '#1a202c',      // 墨黑头发
+    hairAccentColor: '#fc8181', // 红色发带
     weaponColor: '#c0c0c0',    // 银色剑身
-    weaponAccentColor: '#e74c3c', // 红色剑穗
+    weaponAccentColor: '#fc8181', // 红色剑穗
     
     // v1.1.0: 动画相关
     idleTime: 0,               // 待机时间
