@@ -46,6 +46,7 @@ js/
 
 ### ✅ 已完成
 - [x] **config.js** - 配置数据分离 (P0)
+- [x] **systems.js** - 系统配置分离 (P0)
 - [x] **player.js** - 玩家模块分离 (P1)
 - [x] **enemy.js** - 怪物模块分离 (P1)
 
