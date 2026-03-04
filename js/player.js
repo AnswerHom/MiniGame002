@@ -55,7 +55,7 @@ const player = {
     },
 
     // v1.0.2: 暴击系统
-    attack(enemy) {
+    attackTarget(enemy) {
         if (this.attackCooldown <= 0) {
             this.attacking = true;
             this.attackFrame = 0;

@@ -48,7 +48,7 @@ function update(dt) {
         if (!enemy.alive) return;
         const dist = Math.abs(player.x - enemy.x);
         if (dist < player.attackRange) {
-            player.attack(enemy);
+            player.attackTarget(enemy);
         }
     });
     
