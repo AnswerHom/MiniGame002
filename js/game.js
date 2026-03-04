@@ -1,6 +1,7 @@
-// ===== v1.0.2 游戏状态 =====
+// ===== v1.0.8 游戏状态 =====
 
 const game = {
+    state: 'start',  // start:开始界面, playing:游戏中, gameover:游戏结束
     running: true,
     gameOver: false,
     lastTime: 0,
@@ -10,6 +11,23 @@ const game = {
     killCount: 0,
     // v1.0.2: 伤害数字
     damageNumbers: [],
+    
+    // v1.0.8: 重新开始
+    restart() {
+        this.state = 'playing';
+        this.gameOver = false;
+        this.enemies = [];
+        this.killCount = 0;
+        this.spawnTimer = 0;
+        this.damageNumbers = [];
+        player.x = 100;
+        player.hp = player.maxHp;
+        player.exp = 0;
+        player.level = 1;
+        player.isMoving = true;
+        this.lastTime = performance.now();
+        requestAnimationFrame(gameLoop);
+    },
     
     // v1.0.2: 添加伤害数字
     addDamageNumber(x, y, damage, isCrit) {
