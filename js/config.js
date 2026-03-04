@@ -4,7 +4,7 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-const CONFIG = { width: 800, height: 450, groundY: 380, cameraOffset: 0 };
+const CONFIG = { width: 800, height: 450, groundY: 380, cameraOffset: 0, distanceScale: 10 };  // v1.2.3: 10px = 1米
 canvas.width = CONFIG.width;
 canvas.height = CONFIG.height;
 

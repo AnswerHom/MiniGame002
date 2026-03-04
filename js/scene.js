@@ -13,7 +13,7 @@ let sceneState = {
 };
 
 function getScene(distance) {
-    return SCENES[Math.floor(distance / 1000) % 3];
+    return SCENES[Math.floor(distance / 100) % 3];  // v1.2.3: 每前进100米切换一次场景
 }
 
 const SKY_THEMES = {

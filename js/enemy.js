@@ -1,15 +1,15 @@
 // ===== v1.0.2 怪物模块 =====
 
-// v1.0.2: 小怪属性修正（速度单位：px/秒）
+// v1.2.3: 怪物属性（含攻击距离）
 const ENEMY_TYPES = {
     // 阴魂：白色半透明鬼火，淡淡光晕，圆形
-    阴魂: { hp: 20, attack: 5, exp: 10, speed: 20, color: '#e2e8f0', size: 25, realmColor: '#718096' },
+    阴魂: { hp: 20, attack: 5, exp: 10, speed: 20, attackDistance: 40, color: '#e2e8f0', size: 25, realmColor: '#718096' },
     // 妖狼：灰色毛皮，四足奔跑形态
-    妖狼: { hp: 30, attack: 8, exp: 15, speed: 50, color: '#718096', size: 35, realmColor: '#718096' },
+    妖狼: { hp: 30, attack: 8, exp: 15, speed: 50, attackDistance: 50, color: '#718096', size: 35, realmColor: '#718096' },
     // 毒蛛：黑色背甲，红色斑点，8条腿
-    毒蛛: { hp: 25, attack: 10, exp: 12, speed: 25, color: '#1a202c', size: 30, realmColor: '#1a202c' },
+    毒蛛: { hp: 25, attack: 10, exp: 12, speed: 25, attackDistance: 35, color: '#1a202c', size: 30, realmColor: '#1a202c' },
     // 僵尸：灰绿色皮肤，双臂平伸
-    僵尸: { hp: 40, attack: 12, exp: 20, speed: 20, color: '#68d391', size: 40, realmColor: '#68d391' }
+    僵尸: { hp: 40, attack: 12, exp: 20, speed: 20, attackDistance: 45, color: '#68d391', size: 40, realmColor: '#68d391' }
 };
 
 // v1.0.2: 境界颜色区分
@@ -28,6 +28,7 @@ class Enemy {
         this.attack = config.attack;
         this.exp = config.exp;
         this.speed = config.speed;
+        this.attackDistance = config.attackDistance;  // v1.2.3: 怪物攻击距离
         this.baseColor = config.color;
         this.size = config.size;
         this.alive = true;
@@ -60,8 +61,8 @@ class Enemy {
         // v1.2.2: 修复 - 只有所有怪物都清除后才恢复移动
         if (hasEnemyInRange) {
             player.isMoving = false;
-            // 在攻击范围内则攻击
-            if (Math.abs(dist) < player.attackRange && this.attackCooldown <= 0) {
+            // v1.2.3: 怪物进入自己的攻击距离后停止并攻击
+            if (Math.abs(dist) < this.attackDistance && this.attackCooldown <= 0) {
                 this.attackPlayer();
             }
             return;
@@ -72,8 +73,8 @@ class Enemy {
         // 怪物向玩家移动
         if (dist > 0 && dist < 300) this.x += this.speed * dt;
         
-        // 怪物攻击
-        if (Math.abs(dist) < player.attackRange && this.attackCooldown <= 0) {
+        // v1.2.3: 怪物进入自己的攻击距离后停止并攻击
+        if (Math.abs(dist) < this.attackDistance && this.attackCooldown <= 0) {
             this.attackPlayer();
         }
     }
