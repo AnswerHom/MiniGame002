@@ -458,6 +458,8 @@ const player = {
         else if (this.level < 15) baseAttack = 28 + (this.level - 10) * 4;
         else baseAttack = 38 + (this.level - 15) * 5;
         this.attack = Math.floor(baseAttack * w.attackMult);
+        // v1.6.1 修复：从武器配置中获取攻击范围
+        this.attackRange = w.range;
     },
     
     addRage(amount) {
@@ -1472,9 +1474,10 @@ class Enemy {
         if (this.attackCooldown > 0) this.attackCooldown -= dt;
         if (this.attacking) { this.attackFrame += dt * 8; if (this.attackFrame >= 1) this.attacking = false; }
         const dist = player.x - this.x;
-        // 怪物会从较远距离靠近玩家（增加到600像素检测范围）
-        if (dist > 0 && dist < 600) this.x += this.speed * dt;
-        if (dist > 0 && dist < this.attackRange + player.width/2 && this.attackCooldown <= 0) {
+        // 怪物从右侧过来时会接近玩家（无论在左侧还是右侧都要靠近）
+        if (Math.abs(dist) < 600) this.x += this.speed * Math.sign(dist) * dt;
+        // 玩家攻击怪物 - 无论怪物在左还是在右
+        if (Math.abs(dist) < player.attackRange + player.width/2 && this.attackCooldown <= 0) {
             this.attacking = true; this.attackFrame = 0; this.attackCooldown = this.special === 'fast' ? 0.8 : 1.5;
             
             // v1.7.0 护体光环反伤检测
