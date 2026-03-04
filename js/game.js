@@ -169,25 +169,11 @@ const RAGE_SKILLS = {
 // ===== v1.1.0 新增系统 =====
 
 // 装备系统
-const EQUIP_TYPES = {
-    武器: { slot: 'weapon', icon: '⚔️', stat: 'attack', statName: '攻击' },
-    防具: { slot: 'armor', icon: '🛡️', stat: 'defense', statName: '防御' },
-    饰品: { slot: 'accessory', icon: '💍', stat: 'critRate', statName: '暴击' }
-};
-
 const EQUIP_QUALITY = {
     凡品: { color: '#ffffff', mult: 1.0 },
     精品: { color: '#00ff00', mult: 1.5 },
     极品: { color: '#0088ff', mult: 2.0 },
     仙品: { color: '#ff00ff', mult: 3.0 }
-};
-
-// 副本系统
-const DUNGEONS = {
-    阴魂洞: { name: '阴魂洞', difficulty: 1, enemies: ['阴魂'], count: 10, rewardExp: 500, minLevel: 1 },
-    妖狼谷: { name: '妖狼谷', difficulty: 2, enemies: ['妖狼'], count: 5, rewardExp: 800, minLevel: 5 },
-    万蛛巢: { name: '万蛛巢', difficulty: 3, enemies: ['毒蛛'], count: 3, rewardExp: 1200, minLevel: 10 },
-    僵尸陵: { name: '僵尸陵', difficulty: 3, enemies: ['僵尸'], count: 2, rewardExp: 1500, minLevel: 15 }
 };
 
 // 境界突破配置
@@ -1118,26 +1104,6 @@ function drawUI() {
         ctx.fillText('按Q释放怒气技能!', 20, 80);
         ctx.globalAlpha = 1;
     }
-    
-    // ===== 装备UI =====
-    ctx.fillStyle = '#fff'; ctx.font = 'bold 11px Microsoft YaHei'; ctx.textAlign = 'left';
-    ctx.fillText('装备:', 220, 20);
-    
-    let equipX = 220;
-    Object.keys(player.equipment).forEach(type => {
-        const eq = player.equipment[type];
-        const eqInfo = EQUIP_TYPES[type];
-        if (eq) {
-            ctx.fillStyle = eq.qualityColor;
-            ctx.font = '10px Microsoft YaHei';
-            ctx.fillText(eqInfo.icon + eq.name, equipX, 35);
-        } else {
-            ctx.fillStyle = '#666';
-            ctx.font = '10px Microsoft YaHei';
-            ctx.fillText(eqInfo.icon + '-', equipX, 35);
-        }
-        equipX += 75;
-    });
     
     // 防御力显示
     ctx.fillStyle = '#88ff88'; ctx.font = '10px Microsoft YaHei';
