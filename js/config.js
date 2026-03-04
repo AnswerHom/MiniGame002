@@ -92,15 +92,6 @@ function getRealm(level) {
     return REALMS[0];
 }
 
-const SCENES = [
-    { name: '山野之路', bgColor: ['#1a0a2e', '#2d1b4e', '#1a3a5c'], groundColor: '#1a2f25' },
-    { name: '幽林深处', bgColor: ['#0a1a0a', '#1a2d1a', '#1a3a2a'], groundColor: '#1a2a1a' },
-    { name: '古墓遗迹', bgColor: ['#1a1a1a', '#2a2a2a', '#1a2a2a'], groundColor: '#2a2a2a' }
-];
-
-function getScene(distance) {
-    return SCENES[Math.floor(distance / 1000) % 3];
-}
 
 const BATTLE_STATES = {
     ADVANCE: 'advance',
