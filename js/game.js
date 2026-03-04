@@ -2055,7 +2055,7 @@ function draw() {
     });
     
     game.particles.forEach(p => p.draw());
-    drawUI();
+    UI.draw();
     
     ctx.restore();
 }
