@@ -264,5 +264,7 @@ class Enemy {
 function spawnEnemy() {
     const types = Object.keys(ENEMY_TYPES);
     const type = types[Math.floor(Math.random() * types.length)];
-    game.enemies.push(new Enemy(player.x + 200 + Math.random() * 200, type));
+    // v1.2.5: 怪物从屏幕右侧外生成(x > 屏幕宽度)
+    const spawnX = player.x + CONFIG.width + Math.random() * 200;
+    game.enemies.push(new Enemy(spawnX, type));
 }
