@@ -1,4 +1,4 @@
-// MiniGame002 - 游戏主逻辑 v1.1.0
+// MiniGame002 - 游戏主逻辑 v1.2.0
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -149,7 +149,15 @@ const game = {
     equipment: { 武器: null, 防具: null, 饰品: null },
     dungeon: null, dungeonTimer: 0, dungeonEnemiesRemaining: 0,
     dungeonEntrance: null,
-    realmBreakthrough: false, guardian: null, guardianDefeated: false
+    realmBreakthrough: false, guardian: null, guardianDefeated: false,
+    // v1.2.0 炼丹系统
+    herbs: { '止血草': 0, '灵气花': 0, '凝元果': 0, '千年灵芝': 0, '九天雪莲': 0 },
+    alchemyOpen: false, selectedRecipe: null,
+    // v1.2.0 灵宠系统
+    pets: [], activePet: null, petSkillTimer: 0,
+    wildPet: null, petCatchAttempt: 0,
+    // v1.2.0 药材采集
+    herbSpawns: [], herbSpawnTimer: 0
 };
 
 // 兵器系统
@@ -187,6 +195,44 @@ const REALM_BREAKTHROUGH = {
     渡劫: { requiredLevel: 40, guardian: '僵尸', guardianMult: 8 }
 };
 
+// ===== v1.2.0 炼丹系统 =====
+
+// 药材数据库
+const HERBS = {
+    '止血草': { level: 1, name: '止血草', icon: '🌿', color: '#44ff44' },
+    '灵气花': { level: 2, name: '灵气花', icon: '🌸', color: '#ff88ff' },
+    '凝元果': { level: 3, name: '凝元果', icon: '🍎', color: '#ffaa00' },
+    '千年灵芝': { level: 4, name: '千年灵芝', icon: '🍄', color: '#aa44ff' },
+    '九天雪莲': { level: 5, name: '九天雪莲', icon: '❄️', color: '#88ffff' }
+};
+
+// 丹方配方
+const RECIPES = {
+    '止血丹': { name: '止血丹', ingredients: { '止血草': 2 }, effect: 'heal', value: 50, icon: '💊' },
+    '聚气丹': { name: '聚气丹', ingredients: { '灵气花': 2 }, effect: 'exp', value: 10, icon: '✨' },
+    '培元丹': { name: '培元丹', ingredients: { '凝元果': 2 }, effect: 'attack', value: 5, icon: '⚔️' },
+    '筑基丹': { name: '筑基丹', ingredients: { '千年灵芝': 1 }, effect: 'breakthrough', value: 0.5, icon: '🧘' },
+    '升仙丹': { name: '升仙丹', ingredients: { '九天雪莲': 1 }, effect: 'revive', value: 1, icon: '🌟' }
+};
+
+// ===== v1.2.0 灵宠系统 =====
+
+// 灵宠数据库
+const PETS = {
+    '小狐狸': { name: '小狐狸', quality: '普通', icon: '🦊', skill: 'attackBuff', skillName: '攻击辅助', attackBonus: 5, defenseBonus: 0, speedBonus: 0, catchRate: 0.8 },
+    '青蛇': { name: '青蛇', quality: '优秀', icon: '🐍', skill: 'slow', skillName: '减速敌人', attackBonus: 3, defenseBonus: 2, speedBonus: 0, catchRate: 0.5 },
+    '雷鹰': { name: '雷鹰', quality: '稀有', icon: '🦅', skill: 'lightning', skillName: '闪电攻击', attackBonus: 8, defenseBonus: 1, speedBonus: 5, catchRate: 0.3 },
+    '仙鹤': { name: '仙鹤', quality: '稀有', icon: '🦢', skill: 'speed', skillName: '移动加速', attackBonus: 2, defenseBonus: 3, speedBonus: 10, catchRate: 0.3 },
+    '白虎': { name: '白虎', quality: '传说', icon: '🐯', skill: 'battle', skillName: '战斗助战', attackBonus: 15, defenseBonus: 5, speedBonus: 3, catchRate: 0.1 }
+};
+
+const PET_QUALITY_COLORS = {
+    '普通': '#ffffff',
+    '优秀': '#00ff00',
+    '稀有': '#0088ff',
+    '传说': '#ff00ff'
+};
+
 for (let i = 0; i < 8; i++) game.clouds.push({ x: Math.random() * 2000, y: 50 + Math.random() * 150, width: 100 + Math.random() * 150, speed: 10 + Math.random() * 20, opacity: 0.1 + Math.random() * 0.2 });
 for (let i = 0; i < 50; i++) game.stars.push({ x: Math.random() * CONFIG.width, y: Math.random() * (CONFIG.groundY - 100), size: 1 + Math.random() * 2, twinkle: Math.random() * Math.PI * 2, speed: 1 + Math.random() * 3 });
 for (let i = 0; i < 30; i++) game.grass.push({ x: i * 60 + Math.random() * 30, height: 8 + Math.random() * 12, sway: Math.random() * Math.PI * 2 });
@@ -212,6 +258,10 @@ const player = {
     realmBreakthroughPending: false,
     skills: { 御剑术: { unlocked: false, cooldownTimer: 0 }, 剑气斩: { unlocked: false, cooldownTimer: 0 }, 护体神光: { unlocked: false, cooldownTimer: 0, active: false, activeTimer: 0 } },
     slowed: false, slowTimer: 0,
+    // v1.2.0 药材背包
+    herbInventory: { '止血草': 3, '灵气花': 2, '凝元果': 0, '千年灵芝': 0, '九天雪莲': 0 },
+    // v1.2.0 灵宠
+    pets: [], activePet: null, permanentAttackBonus: 0,
     
     getRealm() { return getRealm(this.level); },
     
@@ -311,7 +361,7 @@ const player = {
     },
     
     recalcStats() {
-        // 重新计算攻击力（含武器装备）
+        // 重新计算攻击力（含武器装备 + 灵宠加成）
         const w = WEAPONS[this.weapon];
         let baseAttack;
         if (this.level < 5) baseAttack = 10 + (this.level - 1) * 2;
@@ -323,10 +373,19 @@ const player = {
         if (this.equipment.武器) {
             attack += this.equipment.武器.value;
         }
+        // v1.2.0 灵宠攻击加成
+        if (this.activePet) {
+            attack += this.activePet.attack * this.activePet.level;
+        }
         this.attack = attack;
         
         // 防御力
         this.defense = this.getDefense();
+        
+        // v1.2.0 灵宠防御加成
+        if (this.activePet) {
+            this.defense += this.activePet.defense * this.activePet.level;
+        }
         
         // 生命上限
         let maxHp;
@@ -339,6 +398,108 @@ const player = {
             maxHp += this.equipment.饰品.value * 10;
         }
         this.maxHp = maxHp;
+        
+        // v1.2.0 灵宠速度加成
+        let speed = 150;
+        if (this.activePet) {
+            speed += this.activePet.speed * this.activePet.level;
+        }
+        this.speed = speed;
+    },
+    
+    // v1.2.0 炼丹：使用丹药
+    usePotion(potionName) {
+        const recipe = RECIPES[potionName];
+        if (!recipe) return false;
+        
+        // 检查材料
+        for (let herb in recipe.ingredients) {
+            if (!this.herbInventory[herb] || this.herbInventory[herb] < recipe.ingredients[herb]) {
+                createFloatingText(this.x, this.y - 80, '材料不足!', '#ff4444');
+                return false;
+            }
+        }
+        
+        // 消耗材料
+        for (let herb in recipe.ingredients) {
+            this.herbInventory[herb] -= recipe.ingredients[herb];
+        }
+        
+        // 丹药效果
+        if (recipe.effect === 'heal') {
+            this.hp = Math.min(this.maxHp, this.hp + recipe.value);
+            createFloatingText(this.x, this.y - 80, '+' + recipe.value + ' 生命!', '#44ff44');
+        } else if (recipe.effect === 'exp') {
+            this.addExp(recipe.value);
+            createFloatingText(this.x, this.y - 80, '+' + recipe.value + ' 经验!', '#ffd700');
+        } else if (recipe.effect === 'attack') {
+            this.permanentAttackBonus += recipe.value;
+            this.recalcStats();
+            createFloatingText(this.x, this.y - 80, '+' + recipe.value + ' 永久攻击!', '#ff8800');
+        } else if (recipe.effect === 'breakthrough') {
+            this.realmBreakthroughPending = true;
+            createFloatingText(this.x, this.y - 80, '突破丹有效!', '#ff00ff');
+        } else if (recipe.effect === 'revive') {
+            if (this.hp <= 0) {
+                this.hp = this.maxHp;
+                game.gameOver = false;
+                createFloatingText(this.x, this.y - 80, '满血复活!', '#00ffff');
+            } else {
+                this.hp = this.maxHp;
+                createFloatingText(this.x, this.y - 80, '生命全满!', '#44ff44');
+            }
+        }
+        
+        createParticle(this.x, this.y - 30, '#ffd700', 20);
+        return true;
+    },
+    
+    // v1.2.0 灵宠：捕捉灵宠
+    catchPet(petName) {
+        const petData = PETS[petName];
+        if (!petData) return false;
+        
+        if (Math.random() < petData.catchRate) {
+            const newPet = {
+                name: petName,
+                level: 1,
+                exp: 0,
+                requiredExp: 100,
+                ...petData
+            };
+            this.pets.push(newPet);
+            createFloatingText(this.x, this.y - 80, '捕捉 ' + petData.icon + petName + ' 成功!', PET_QUALITY_COLORS[petData.quality]);
+            createParticle(this.x, this.y - 30, PET_QUALITY_COLORS[petData.quality], 20);
+            return true;
+        } else {
+            createFloatingText(this.x, this.y - 80, '捕捉失败!', '#ff4444');
+            return false;
+        }
+    },
+    
+    // v1.2.0 灵宠：装备灵宠
+    equipPet(petIndex) {
+        if (petIndex < 0 || petIndex >= this.pets.length) return;
+        
+        if (this.activePet === this.pets[petIndex]) {
+            // 卸下
+            this.activePet = null;
+            createFloatingText(this.x, this.y - 80, '灵宠已卸下', '#aaaaaa');
+        } else {
+            // 装备
+            this.activePet = this.pets[petIndex];
+            createFloatingText(this.x, this.y - 80, '灵宠 ' + this.activePet.icon + this.activePet.name + ' 出战!', PET_QUALITY_COLORS[this.activePet.quality]);
+        }
+        this.recalcStats();
+    },
+    
+    // v1.2.0 灵宠：升级
+    petLevelUp(pet) {
+        pet.level++;
+        pet.exp = 0;
+        pet.requiredExp = Math.floor(pet.requiredExp * 1.5);
+        createFloatingText(this.x, this.y - 100, pet.icon + pet.name + ' 升级! Lv.' + pet.level, '#ffd700');
+        this.recalcStats();
     },
     
     // 检查是否需要境界突破
@@ -800,6 +961,60 @@ function tryDropEquipment(enemy) {
         createFloatingText(enemy.x, enemy.y - enemy.height - 30, '掉落' + item.name + '!', q.color);
         createParticle(enemy.x, enemy.y - enemy.height/2, q.color, 15);
     }
+    
+    // v1.2.0 药材掉落
+    tryDropHerbs(enemy);
+    
+    // v1.2.0 灵宠掉落
+    trySpawnWildPet(enemy);
+}
+
+// v1.2.0 药材掉落
+function tryDropHerbs(enemy) {
+    let herbType = null;
+    let dropChance = 0.3;
+    
+    // 根据怪物类型掉落不同药材
+    if (enemy.type === '阴魂') {
+        if (Math.random() < 0.3) herbType = '止血草';
+    } else if (enemy.type === '妖狼') {
+        if (Math.random() < 0.25) herbType = '灵气花';
+    } else if (enemy.type === '毒蛛') {
+        if (Math.random() < 0.2) herbType = '凝元果';
+    } else if (enemy.type === '僵尸') {
+        if (Math.random() < 0.15) herbType = '千年灵芝';
+    }
+    
+    if (herbType) {
+        player.herbInventory[herbType] = (player.herbInventory[herbType] || 0) + 1;
+        const herb = HERBS[herbType];
+        createFloatingText(enemy.x, enemy.y - enemy.height - 45, '获得' + herb.icon + herbType + '!', herb.color);
+        createParticle(enemy.x, enemy.y - enemy.height/2, herb.color, 10);
+    }
+}
+
+// v1.2.0 野生灵宠生成
+function trySpawnWildPet(enemy) {
+    // 只有精英怪才有几率生成灵宠
+    if (enemy.type !== '阴魂' && enemy.type !== '妖狼') return;
+    
+    // 5%几率生成野生灵宠
+    if (Math.random() < 0.05 && !game.wildPet) {
+        const petKeys = Object.keys(PETS);
+        const petName = petKeys[Math.floor(Math.random() * petKeys.length)];
+        const petData = PETS[petName];
+        
+        game.wildPet = {
+            name: petName,
+            x: enemy.x,
+            y: CONFIG.groundY,
+            ...petData,
+            hp: 30,
+            maxHp: 30
+        };
+        
+        createFloatingText(enemy.x, enemy.y - enemy.height - 60, '发现野生' + petData.icon + petName + '!', PET_QUALITY_COLORS[petData.quality]);
+    }
 }
 
 // 进入副本
@@ -900,6 +1115,58 @@ function update(dt) {
     game.clouds.forEach(cloud => { cloud.x += cloud.speed * actualDt; if (cloud.x > player.x + CONFIG.width) cloud.x = player.x - cloud.width; });
     game.stars.forEach(star => star.twinkle += star.speed * actualDt);
     game.grass.forEach(grass => grass.sway += actualDt * 2);
+    
+    // v1.2.0 灵宠战斗协助
+    if (player.activePet) {
+        game.petSkillTimer += actualDt;
+        if (game.petSkillTimer >= 10) { // 每10秒触发一次灵宠技能
+            game.petSkillTimer = 0;
+            // 灵宠技能效果
+            const pet = player.activePet;
+            if (pet.skill === 'attackBuff') {
+                // 攻击辅助 - 造成额外伤害
+                const nearestEnemy = game.enemies.find(e => e.alive && Math.abs(e.x - player.x) < 300);
+                if (nearestEnemy) {
+                    nearestEnemy.takeDamage(pet.attack * pet.level * 2);
+                    createFloatingText(nearestEnemy.x, nearestEnemy.y - 60, pet.icon + pet.name + ' 助攻!', PET_QUALITY_COLORS[pet.quality]);
+                }
+            } else if (pet.skill === 'lightning') {
+                // 闪电攻击
+                game.enemies.forEach(e => {
+                    if (e.alive && Math.abs(e.x - player.x) < 200) {
+                        e.takeDamage(pet.attack * pet.level);
+                    }
+                });
+                createFloatingText(player.x, player.y - 100, pet.icon + ' 闪电攻击!', '#ffff00');
+                createParticle(player.x, player.y - 50, '#ffff00', 15);
+            } else if (pet.skill === 'slow') {
+                // 减速敌人
+                game.enemies.forEach(e => {
+                    if (e.alive && Math.abs(e.x - player.x) < 150 && !e.slowed) {
+                        e.slowed = true; e.slowTimer = 3;
+                    }
+                });
+                createFloatingText(player.x, player.y - 100, pet.icon + ' 减速敌人!', '#88ff88');
+            }
+            
+            // 灵宠升级检查
+            if (pet.exp >= pet.requiredExp) {
+                player.petLevelUp(pet);
+            }
+        }
+    }
+    
+    // v1.2.0 药材采集刷新
+    game.herbSpawnTimer += actualDt;
+    if (game.herbSpawnTimer >= 30) { // 每30秒刷新药材
+        game.herbSpawnTimer = 0;
+        // 简单处理：增加随机药材
+        const herbTypes = Object.keys(HERBS);
+        const randomHerb = herbTypes[Math.floor(Math.random() * 3)]; // 只生成低级药材
+        player.herbInventory[randomHerb] = (player.herbInventory[randomHerb] || 0) + 1;
+        createFloatingText(player.x, player.y - 120, '发现 ' + HERBS[randomHerb].icon + randomHerb + '!', HERBS[randomHerb].color);
+    }
+    
     if (player.hp <= 0) { player.hp = 0; game.gameOver = true; }
 }
 
@@ -1143,6 +1410,59 @@ function drawUI() {
         ctx.fillText('闪避中!', CONFIG.width / 2, 70);
     }
     
+    // ===== v1.2.0 药材背包UI =====
+    ctx.fillStyle = '#aaa'; ctx.font = '10px Microsoft YaHei'; ctx.textAlign = 'left';
+    ctx.fillText('药材:', 250, 95);
+    
+    let herbX = 290;
+    Object.keys(HERBS).forEach(herbName => {
+        const herb = HERBS[herbName];
+        const count = player.herbInventory[herbName] || 0;
+        ctx.fillStyle = count > 0 ? '#333' : '#222';
+        ctx.strokeStyle = count > 0 ? herb.color : '#444';
+        ctx.lineWidth = count > 0 ? 1 : 1;
+        ctx.fillRect(herbX, 85, 50, 16);
+        ctx.strokeRect(herbX, 85, 50, 16);
+        ctx.fillStyle = count > 0 ? herb.color : '#444';
+        ctx.font = '9px Microsoft YaHei';
+        ctx.fillText(herb.icon + count, herbX + 3, 96);
+        herbX += 55;
+    });
+    
+    // ===== v1.2.0 灵宠UI =====
+    if (player.pets.length > 0) {
+        ctx.fillStyle = '#aaa'; ctx.font = '10px Microsoft YaHei';
+        ctx.fillText('灵宠:', 250, 115);
+        
+        let petX = 290;
+        player.pets.forEach((pet, index) => {
+            const isActive = player.activePet === pet;
+            ctx.fillStyle = isActive ? '#444' : '#333';
+            ctx.strokeStyle = PET_QUALITY_COLORS[pet.quality];
+            ctx.lineWidth = isActive ? 2 : 1;
+            ctx.fillRect(petX, 105, 45, 16);
+            ctx.strokeRect(petX, 105, 45, 16);
+            ctx.fillStyle = PET_QUALITY_COLORS[pet.quality];
+            ctx.font = '9px Microsoft YaHei';
+            ctx.fillText(pet.icon + 'L' + pet.level, petX + 3, 116);
+            petX += 50;
+        });
+    }
+    
+    // ===== v1.2.0 炼丹/灵宠提示 =====
+    ctx.fillStyle = '#888'; ctx.font = '9px Microsoft YaHei';
+    ctx.fillText('D:炼丹 灵宠:C', CONFIG.width - 100, CONFIG.height - 8);
+    
+    // ===== v1.2.0 野生灵宠提示 =====
+    if (game.wildPet) {
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(CONFIG.width/2 - 100, 150, 200, 60);
+        ctx.fillStyle = PET_QUALITY_COLORS[game.wildPet.quality]; ctx.font = 'bold 14px Microsoft YaHei'; ctx.textAlign = 'center';
+        ctx.fillText('发现野生 ' + game.wildPet.icon + game.wildPet.name + '!', CONFIG.width/2, 170);
+        ctx.fillStyle = '#fff'; ctx.font = '11px Microsoft YaHei';
+        ctx.fillText('按C捕捉 | 击杀后消失', CONFIG.width/2, 190);
+    }
+    
     // 游戏结束
     if (game.gameOver) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
@@ -1203,6 +1523,24 @@ function draw() {
     game.enemies.forEach(enemy => enemy.draw());
     game.projectiles.forEach(p => p.draw());
     player.draw();
+    
+    // v1.2.0 绘制野生灵宠
+    if (game.wildPet) {
+        const screenX = game.wildPet.x - CONFIG.cameraOffset;
+        const pet = game.wildPet;
+        ctx.fillStyle = PET_QUALITY_COLORS[pet.quality];
+        ctx.font = '24px Microsoft YaHei';
+        ctx.textAlign = 'center';
+        ctx.fillText(pet.icon, screenX, CONFIG.groundY - 30);
+        
+        // 血条
+        const hpPercent = pet.hp / pet.maxHp;
+        ctx.fillStyle = '#333';
+        ctx.fillRect(screenX - 15, CONFIG.groundY - 50, 30, 4);
+        ctx.fillStyle = hpPercent > 0.5 ? '#44ff44' : '#ff4444';
+        ctx.fillRect(screenX - 15, CONFIG.groundY - 50, 30 * hpPercent, 4);
+    }
+    
     game.particles.forEach(p => p.draw());
     drawUI();
     
@@ -1279,6 +1617,46 @@ document.addEventListener('keydown', function(e) {
     if (e.code === 'KeyB' || e.key === 'b' || e.key === 'B') {
         if (player.realmBreakthroughPending && !game.realmBreakthrough) {
             player.startRealmBreakthrough();
+        }
+    }
+    
+    // v1.2.0 炼丹系统 D
+    if (e.code === 'KeyD' || e.key === 'd' || e.key === 'D') {
+        // 显示可用的丹药和材料
+        let availablePotions = [];
+        Object.keys(RECIPES).forEach(potionName => {
+            const recipe = RECIPES[potionName];
+            let canCraft = true;
+            for (let herb in recipe.ingredients) {
+                if (!player.herbInventory[herb] || player.herbInventory[herb] < recipe.ingredients[herb]) {
+                    canCraft = false;
+                    break;
+                }
+            }
+            if (canCraft) {
+                availablePotions.push(potionName);
+            }
+        });
+        
+        if (availablePotions.length > 0) {
+            // 按顺序使用第一个可用的丹药
+            player.usePotion(availablePotions[0]);
+        } else {
+            createFloatingText(player.x, player.y - 80, '材料不足，无法炼丹', '#888');
+        }
+    }
+    
+    // v1.2.0 灵宠系统 C
+    if (e.code === 'KeyC' || e.key === 'c' || e.key === 'C') {
+        if (game.wildPet) {
+            // 捕捉灵宠
+            player.catchPet(game.wildPet.name);
+            game.wildPet = null;
+        } else if (player.pets.length > 0) {
+            // 切换灵宠装备
+            player.equipPet(0);
+        } else {
+            createFloatingText(player.x, player.y - 80, '没有灵宠', '#888');
         }
     }
 });
