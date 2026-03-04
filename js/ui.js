@@ -1,12 +1,18 @@
-// ===== v1.0.0 UI模块 =====
+// ===== v1.0.5 UI模块 =====
 
 function drawUI() {
     ctx.font = '14px Microsoft YaHei';
     ctx.textAlign = 'left';
     
+    // 境界显示 (v1.0.5新增)
+    const realm = getRealm(player.level);
+    const realmColor = REALM_COLORS[realm.name] || '#ffffff';
+    ctx.fillStyle = realmColor;
+    ctx.fillText('境界: ' + realm.name, 20, 25);
+    
     // 等级
     ctx.fillStyle = '#fff';
-    ctx.fillText('等级: Lv.' + player.level, 20, 25);
+    ctx.fillText('等级: Lv.' + player.level, 120, 25);
     
     // 血条背景
     ctx.fillStyle = '#333';
@@ -29,4 +35,11 @@ function drawUI() {
     // 距离
     ctx.fillStyle = '#00ffff';
     ctx.fillText('距离: ' + Math.floor(player.x / 10) + 'm', 20, 80);
+    
+    // 场景名称
+    const scene = getScene(player.x);
+    ctx.fillStyle = '#aaa';
+    ctx.textAlign = 'right';
+    ctx.fillText(scene.name, CONFIG.width - 20, 25);
+    ctx.textAlign = 'left';
 }
