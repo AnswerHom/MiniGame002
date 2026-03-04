@@ -1,14 +1,7 @@
-// MiniGame002 - 游戏主逻辑 v1.11.0
-// v1.11.0: 怪物形象完整实现 + 战斗表现优化
-// v1.10.1: 怪物形象细节化 - 让程序能画出具体怪物（文档已更新）
-// v1.10.0: UI优化 + 怪物形象丰富化
-// v1.7.0: 技能系统雏形 + 战斗爽感提升
-// v1.6.1: 战斗体验优化 - 自动前进/自动停下战斗/自动继续推进
-// v1.6.0: 打击感优化 + 音效系统 + Boss战体验
-// v1.5.0: 战斗状态机 + 战斗场景分离 + 战斗节奏优化 + UI界面重构
+// MiniGame002 - 配置数据
+// 包含：canvas初始化、基础配置、场景配置
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-
 
 const CONFIG = { width: 800, height: 450, groundY: 380, cameraOffset: 0 };
 canvas.width = CONFIG.width;
