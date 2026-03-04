@@ -1,4 +1,4 @@
-// MiniGame002 - 游戏主逻辑 v1.2.0
+// MiniGame002 - 游戏主逻辑 v1.3.0
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -10,13 +10,14 @@ const REALMS = [
     { name: '筑基', minLevel: 1 }, { name: '金丹', minLevel: 5 },
     { name: '元婴', minLevel: 10 }, { name: '化神', minLevel: 15 },
     { name: '炼虚', minLevel: 20 }, { name: '合体', minLevel: 25 },
-    { name: '大乘', minLevel: 30 }, { name: '渡劫', minLevel: 35 }
+    { name: '大乘', minLevel: 30 }, { name: '渡劫', minLevel: 35 },
+    { name: '飞升', minLevel: 45 }
 ];
 
 // 境界加成配置
 const REALM_BONUS = {
     '筑基': 1.0, '金丹': 1.2, '元婴': 1.5, '化神': 2.0,
-    '炼虚': 2.5, '合体': 3.0, '大乘': 4.0, '渡劫': 5.0
+    '炼虚': 2.5, '合体': 3.0, '大乘': 4.0, '渡劫': 5.0, '飞升': 6.0
 };
 
 // 装备等级颜色
@@ -157,7 +158,9 @@ const game = {
     pets: [], activePet: null, petSkillTimer: 0,
     wildPet: null, petCatchAttempt: 0,
     // v1.2.0 药材采集
-    herbSpawns: [], herbSpawnTimer: 0
+    herbSpawns: [], herbSpawnTimer: 0,
+    // v1.3.0 仙侣系统
+    companionOpen: false, companion: null, companionSkillTimer: 0
 };
 
 // 兵器系统
@@ -233,6 +236,23 @@ const PET_QUALITY_COLORS = {
     '传说': '#ff00ff'
 };
 
+// ===== v1.3.0 仙侣系统 =====
+
+// 仙侣数据库
+const COMPANIONS = {
+    '素女': { name: '素女', quality: '普通', icon: '👩', skill: 'lifeBonus', skillName: '生命加成', lifeBonus: 50, attackBonus: 0, realmRequired: '筑基', description: '普通仙侣，生命加成' },
+    '剑仙': { name: '剑仙', quality: '优秀', icon: '🗡️', skill: 'attackBonus', skillName: '攻击加成', lifeBonus: 0, attackBonus: 15, realmRequired: '金丹', description: '优秀仙侣，攻击加成' },
+    '琴姬': { name: '琴姬', quality: '稀有', icon: '🎵', skill: 'expBonus', skillName: '经验加成', lifeBonus: 20, attackBonus: 10, realmRequired: '元婴', description: '稀有仙侣，经验加成' },
+    '散人': { name: '散人', quality: '传说', icon: '🧘', skill: 'allBonus', skillName: '全属性加成', lifeBonus: 100, attackBonus: 30, realmRequired: '化神', description: '传说仙侣，全属性加成' }
+};
+
+const COMPANION_QUALITY_COLORS = {
+    '普通': '#ffffff',
+    '优秀': '#00ff00',
+    '稀有': '#0088ff',
+    '传说': '#ff00ff'
+};
+
 for (let i = 0; i < 8; i++) game.clouds.push({ x: Math.random() * 2000, y: 50 + Math.random() * 150, width: 100 + Math.random() * 150, speed: 10 + Math.random() * 20, opacity: 0.1 + Math.random() * 0.2 });
 for (let i = 0; i < 50; i++) game.stars.push({ x: Math.random() * CONFIG.width, y: Math.random() * (CONFIG.groundY - 100), size: 1 + Math.random() * 2, twinkle: Math.random() * Math.PI * 2, speed: 1 + Math.random() * 3 });
 for (let i = 0; i < 30; i++) game.grass.push({ x: i * 60 + Math.random() * 30, height: 8 + Math.random() * 12, sway: Math.random() * Math.PI * 2 });
@@ -262,6 +282,8 @@ const player = {
     herbInventory: { '止血草': 3, '灵气花': 2, '凝元果': 0, '千年灵芝': 0, '九天雪莲': 0 },
     // v1.2.0 灵宠
     pets: [], activePet: null, permanentAttackBonus: 0,
+    // v1.3.0 仙侣系统
+    companion: null, companionSkillReady: true,
     
     getRealm() { return getRealm(this.level); },
     
@@ -361,7 +383,7 @@ const player = {
     },
     
     recalcStats() {
-        // 重新计算攻击力（含武器装备 + 灵宠加成）
+        // 重新计算攻击力（含武器装备 + 灵宠加成 + 仙侣加成）
         const w = WEAPONS[this.weapon];
         let baseAttack;
         if (this.level < 5) baseAttack = 10 + (this.level - 1) * 2;
@@ -376,6 +398,10 @@ const player = {
         // v1.2.0 灵宠攻击加成
         if (this.activePet) {
             attack += this.activePet.attack * this.activePet.level;
+        }
+        // v1.3.0 仙侣攻击加成
+        if (this.companion) {
+            attack += this.companion.attackBonus;
         }
         this.attack = attack;
         
@@ -397,6 +423,10 @@ const player = {
         if (this.equipment.饰品 && this.equipment.饰品.stat === 'hp') {
             maxHp += this.equipment.饰品.value * 10;
         }
+        // v1.3.0 仙侣生命加成
+        if (this.companion) {
+            maxHp += this.companion.lifeBonus;
+        }
         this.maxHp = maxHp;
         
         // v1.2.0 灵宠速度加成
@@ -404,6 +434,8 @@ const player = {
         if (this.activePet) {
             speed += this.activePet.speed * this.activePet.level;
         }
+        // v1.3.0 仙侣速度加成（如果有）
+        // 仙侣不直接加成速度，但合体时可以触发技能
         this.speed = speed;
     },
     
@@ -502,6 +534,97 @@ const player = {
         this.recalcStats();
     },
     
+    // v1.3.0 仙侣：绑定仙侣
+    bindCompanion(companionName) {
+        const compData = COMPANIONS[companionName];
+        if (!compData) return false;
+        
+        const realm = this.getRealm();
+        const realmIndex = REALMS.findIndex(r => r.name === realm.name);
+        const requiredRealmIndex = REALMS.findIndex(r => r.name === compData.realmRequired);
+        
+        if (realmIndex < requiredRealmIndex) {
+            createFloatingText(this.x, this.y - 80, '需要达到' + compData.realmRequired + '境界', '#ff8800');
+            return false;
+        }
+        
+        this.companion = {
+            name: companionName,
+            ...compData
+        };
+        this.recalcStats();
+        createFloatingText(this.x, this.y - 100, '与 ' + compData.icon + companionName + ' 结为仙侣!', COMPANION_QUALITY_COLORS[compData.quality]);
+        createParticle(this.x, this.y - 30, COMPANION_QUALITY_COLORS[compData.quality], 25);
+        game.companionOpen = false;
+        return true;
+    },
+    
+    // v1.3.0 仙侣：解除绑定
+    unbindCompanion() {
+        if (!this.companion) {
+            createFloatingText(this.x, this.y - 80, '没有仙侣', '#888');
+            return;
+        }
+        const compName = this.companion.name;
+        this.companion = null;
+        this.recalcStats();
+        createFloatingText(this.x, this.y - 80, '已与 ' + compName + ' 解除仙侣关系', '#aaaaaa');
+    },
+    
+    // v1.3.0 仙侣：合体战斗触发
+    activateCompanionSkill() {
+        if (!this.companion || !this.companionSkillReady) return;
+        
+        // 仙侣技能效果
+        if (this.companion.skill === 'lifeBonus') {
+            // 生命加成 - 恢复生命
+            this.hp = Math.min(this.maxHp, this.hp + this.companion.lifeBonus);
+            createFloatingText(this.x, this.y - 100, this.companion.icon + '生命+"' + this.companion.lifeBonus + '"!', '#44ff44');
+        } else if (this.companion.skill === 'attackBonus') {
+            // 攻击加成 - 临时攻击力提升
+            this.attack += this.companion.attackBonus;
+            createFloatingText(this.x, this.y - 100, this.companion.icon + '攻击+"' + this.companion.attackBonus + '"!', '#ff8800');
+            setTimeout(() => this.recalcStats(), 5000);
+        } else if (this.companion.skill === 'expBonus') {
+            // 经验加成 - 获得额外经验
+            const bonusExp = 20;
+            this.addExp(bonusExp);
+            createFloatingText(this.x, this.y - 100, this.companion.icon + '经验+"' + bonusExp + '"!', '#ffd700');
+        } else if (this.companion.skill === 'allBonus') {
+            // 全属性加成
+            this.hp = Math.min(this.maxHp, this.hp + 50);
+            this.attack += 20;
+            createFloatingText(this.x, this.y - 100, this.companion.icon + '全属性提升!', '#ff00ff');
+            setTimeout(() => this.recalcStats(), 5000);
+        }
+        
+        // 技能冷却
+        this.companionSkillReady = false;
+        setTimeout(() => { this.companionSkillReady = true; }, 10000);
+    },
+    
+    // v1.3.0 仙侣：经验加成计算
+    getExpBonus() {
+        if (this.companion && this.companion.skill === 'expBonus') {
+            return 1.5; // 50%经验加成
+        }
+        return 1.0;
+    },
+    
+    // v1.3.0 灵宠：放生
+    releasePet(petIndex) {
+        if (petIndex < 0 || petIndex >= this.pets.length) return false;
+        
+        const pet = this.pets[petIndex];
+        if (this.activePet === pet) {
+            this.activePet = null;
+        }
+        this.pets.splice(petIndex, 1);
+        createFloatingText(this.x, this.y - 80, '放生 ' + pet.icon + pet.name, '#aaaaaa');
+        this.recalcStats();
+        return true;
+    },
+    
     // 检查是否需要境界突破
     checkRealmBreakthrough() {
         const realm = getRealm(this.level);
@@ -565,7 +688,10 @@ const player = {
     },
     
     addExp(amount) {
-        this.exp += amount;
+        // v1.3.0 仙侣经验加成
+        const expMultiplier = this.getExpBonus();
+        const finalAmount = Math.floor(amount * expMultiplier);
+        this.exp += finalAmount;
         if (this.exp >= this.requiredExp) { this.exp -= this.requiredExp; this.levelUp(); }
     },
     
@@ -1116,7 +1242,7 @@ function update(dt) {
     game.stars.forEach(star => star.twinkle += star.speed * actualDt);
     game.grass.forEach(grass => grass.sway += actualDt * 2);
     
-    // v1.2.0 灵宠战斗协助
+    // v1.2.0 灵宠战斗协助 + v1.3.0 技能补全
     if (player.activePet) {
         game.petSkillTimer += actualDt;
         if (game.petSkillTimer >= 10) { // 每10秒触发一次灵宠技能
@@ -1147,6 +1273,22 @@ function update(dt) {
                     }
                 });
                 createFloatingText(player.x, player.y - 100, pet.icon + ' 减速敌人!', '#88ff88');
+            } else if (pet.skill === 'speed') {
+                // v1.3.0 补全 仙鹤 - 移动加速
+                player.speed += 30;
+                createFloatingText(player.x, player.y - 100, pet.icon + ' 速度提升!', '#00ffff');
+                setTimeout(() => player.recalcStats(), 5000); // 5秒后恢复
+            } else if (pet.skill === 'battle') {
+                // v1.3.0 补全 白虎 - 战斗助战
+                // 白虎会主动攻击附近的敌人
+                const nearbyEnemies = game.enemies.filter(e => e.alive && Math.abs(e.x - player.x) < 250);
+                if (nearbyEnemies.length > 0) {
+                    nearbyEnemies.forEach(e => {
+                        e.takeDamage(pet.attack * pet.level * 1.5);
+                    });
+                    createFloatingText(player.x, player.y - 100, pet.icon + ' 战斗助战!', '#ff8800');
+                    createParticle(player.x, player.y - 50, '#ff8800', 20);
+                }
             }
             
             // 灵宠升级检查
@@ -1156,15 +1298,20 @@ function update(dt) {
         }
     }
     
-    // v1.2.0 药材采集刷新
+    // v1.2.0 药材采集刷新 + v1.3.0 E键采集优化
     game.herbSpawnTimer += actualDt;
     if (game.herbSpawnTimer >= 30) { // 每30秒刷新药材
         game.herbSpawnTimer = 0;
-        // 简单处理：增加随机药材
+        // v1.3.0: 在地图上生成可采集的药材
         const herbTypes = Object.keys(HERBS);
         const randomHerb = herbTypes[Math.floor(Math.random() * 3)]; // 只生成低级药材
-        player.herbInventory[randomHerb] = (player.herbInventory[randomHerb] || 0) + 1;
-        createFloatingText(player.x, player.y - 120, '发现 ' + HERBS[randomHerb].icon + randomHerb + '!', HERBS[randomHerb].color);
+        const herbData = HERBS[randomHerb];
+        game.herbSpawns.push({
+            name: randomHerb,
+            x: player.x + (Math.random() - 0.5) * 400,
+            ...herbData
+        });
+        createFloatingText(player.x, player.y - 120, '发现药材 ' + herbData.icon + randomHerb + '!', herbData.color);
     }
     
     if (player.hp <= 0) { player.hp = 0; game.gameOver = true; }
@@ -1449,9 +1596,25 @@ function drawUI() {
         });
     }
     
-    // ===== v1.2.0 炼丹/灵宠提示 =====
+    // ===== v1.3.0 仙侣UI =====
+    if (player.companion) {
+        ctx.fillStyle = '#aaa'; ctx.font = '10px Microsoft YaHei';
+        ctx.fillText('仙侣:', 250, 130);
+        
+        const comp = player.companion;
+        ctx.fillStyle = '#333';
+        ctx.strokeStyle = COMPANION_QUALITY_COLORS[comp.quality];
+        ctx.lineWidth = 2;
+        ctx.fillRect(290, 120, 50, 16);
+        ctx.strokeRect(290, 120, 50, 16);
+        ctx.fillStyle = COMPANION_QUALITY_COLORS[comp.quality];
+        ctx.font = '9px Microsoft YaHei';
+        ctx.fillText(comp.icon + comp.name, 293, 131);
+    }
+    
+    // ===== v1.2.0 炼丹/灵宠/仙侣提示 =====
     ctx.fillStyle = '#888'; ctx.font = '9px Microsoft YaHei';
-    ctx.fillText('D:炼丹 灵宠:C', CONFIG.width - 100, CONFIG.height - 8);
+    ctx.fillText('D:炼丹 灵宠:C 仙侣:G 采集:E', CONFIG.width - 140, CONFIG.height - 8);
     
     // ===== v1.2.0 野生灵宠提示 =====
     if (game.wildPet) {
@@ -1479,6 +1642,128 @@ function drawUI() {
         ctx.fillText('前行距离: ' + game.distance + 'm', CONFIG.width/2, CONFIG.height/2 + 50);
         ctx.fillText('击杀总数: ' + game.killCount, CONFIG.width/2, CONFIG.height/2 + 80);
         ctx.fillText('重新刷新页面重新开始', CONFIG.width/2, CONFIG.height/2 + 110);
+    }
+    
+    // v1.3.0 仙侣界面
+    if (game.companionOpen) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+        ctx.fillRect(CONFIG.width/2 - 200, 50, 400, 350);
+        ctx.strokeStyle = '#ff00ff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(CONFIG.width/2 - 200, 50, 400, 350);
+        
+        ctx.fillStyle = '#ff00ff';
+        ctx.font = 'bold 24px Microsoft YaHei';
+        ctx.textAlign = 'center';
+        ctx.fillText('💕 仙侣系统', CONFIG.width/2, 85);
+        
+        // 当前仙侣状态
+        ctx.fillStyle = '#fff';
+        ctx.font = '16px Microsoft YaHei';
+        ctx.textAlign = 'left';
+        ctx.fillText('当前仙侣: ' + (player.companion ? player.companion.icon + player.companion.name : '未绑定'), CONFIG.width/2 - 180, 120);
+        
+        // 仙侣列表
+        let y = 160;
+        ctx.fillStyle = '#ffd700';
+        ctx.font = 'bold 14px Microsoft YaHei';
+        ctx.textAlign = 'center';
+        ctx.fillText('可寻找仙侣 (15级开放)', CONFIG.width/2, y);
+        y += 25;
+        
+        Object.keys(COMPANIONS).forEach((compName, index) => {
+            const comp = COMPANIONS[compName];
+            const canBind = player.level >= 15;
+            ctx.fillStyle = canBind ? COMPANION_QUALITY_COLORS[comp.quality] : '#666';
+            ctx.font = '14px Microsoft YaHei';
+            ctx.textAlign = 'left';
+            ctx.fillText((index + 1) + '. ' + comp.icon + comp.name + ' (' + comp.quality + ')', CONFIG.width/2 - 180, y);
+            ctx.fillText('需求: ' + comp.realmRequired + '境界', CONFIG.width/2, y);
+            ctx.fillText('技能: ' + comp.skillName, CONFIG.width/2 + 80, y);
+            y += 25;
+        });
+        
+        ctx.fillStyle = '#fff';
+        ctx.font = '12px Microsoft YaHei';
+        ctx.textAlign = 'center';
+        ctx.fillText('按数字键1-4绑定仙侣 | 按X解除仙侣 | 按G关闭', CONFIG.width/2, 370);
+    }
+    
+    // v1.3.0 炼丹界面
+    if (game.alchemyOpen) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+        ctx.fillRect(CONFIG.width/2 - 200, 50, 400, 350);
+        ctx.strokeStyle = '#44ff44';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(CONFIG.width/2 - 200, 50, 400, 350);
+        
+        ctx.fillStyle = '#44ff44';
+        ctx.font = 'bold 24px Microsoft YaHei';
+        ctx.textAlign = 'center';
+        ctx.fillText('⚗️ 炼丹系统', CONFIG.width/2, 85);
+        
+        // 当前药材
+        ctx.fillStyle = '#fff';
+        ctx.font = '14px Microsoft YaHei';
+        ctx.textAlign = 'left';
+        ctx.fillText('当前药材:', CONFIG.width/2 - 180, 120);
+        
+        let herbX = CONFIG.width/2 - 180;
+        Object.keys(HERBS).forEach((herbName, index) => {
+            const herb = HERBS[herbName];
+            const count = player.herbInventory[herbName] || 0;
+            ctx.fillStyle = count > 0 ? herb.color : '#666';
+            ctx.fillText(herb.icon + herbName + ': ' + count, herbX, 145);
+            herbX += 100;
+            if ((index + 1) % 4 === 0) { herbX = CONFIG.width/2 - 180; }
+        });
+        
+        // 丹方列表
+        ctx.fillStyle = '#ffd700';
+        ctx.font = 'bold 14px Microsoft YaHei';
+        ctx.textAlign = 'center';
+        ctx.fillText('丹方配方 (按数字键炼制)', CONFIG.width/2, 180);
+        
+        let recipeY = 210;
+        Object.keys(RECIPES).forEach((recipeName, index) => {
+            const recipe = RECIPES[recipeName];
+            // 检查是否可炼制
+            let canCraft = true;
+            let missing = '';
+            for (let herb in recipe.ingredients) {
+                if (!player.herbInventory[herb] || player.herbInventory[herb] < recipe.ingredients[herb]) {
+                    canCraft = false;
+                    missing = herb;
+                }
+            }
+            
+            ctx.fillStyle = canCraft ? '#44ff44' : '#ff4444';
+            ctx.font = '12px Microsoft YaHei';
+            ctx.textAlign = 'left';
+            ctx.fillText((index + 1) + '. ' + recipe.icon + recipeName, CONFIG.width/2 - 180, recipeY);
+            
+            // 显示材料需求
+            let matText = '';
+            for (let herb in recipe.ingredients) {
+                const need = recipe.ingredients[herb];
+                const have = player.herbInventory[herb] || 0;
+                matText += herb + need + ' ';
+            }
+            ctx.fillStyle = canCraft ? '#aaa' : '#ff6666';
+            ctx.fillText(matText, CONFIG.width/2 - 80, recipeY);
+            
+            ctx.fillStyle = canCraft ? '#00ffff' : '#666';
+            ctx.textAlign = 'right';
+            ctx.fillText(canCraft ? '可炼制' : '材料不足', CONFIG.width/2 + 180, recipeY);
+            ctx.textAlign = 'left';
+            
+            recipeY += 22;
+        });
+        
+        ctx.fillStyle = '#fff';
+        ctx.font = '12px Microsoft YaHei';
+        ctx.textAlign = 'center';
+        ctx.fillText('按D关闭界面', CONFIG.width/2, 375);
     }
 }
 
@@ -1540,6 +1825,27 @@ function draw() {
         ctx.fillStyle = hpPercent > 0.5 ? '#44ff44' : '#ff4444';
         ctx.fillRect(screenX - 15, CONFIG.groundY - 50, 30 * hpPercent, 4);
     }
+    
+    // v1.3.0 绘制可采集药材
+    game.herbSpawns.forEach(herb => {
+        const screenX = herb.x - CONFIG.cameraOffset;
+        if (screenX > -50 && screenX < CONFIG.width + 50) {
+            // 绘制药材
+            const bounce = Math.sin(Date.now() * 0.003) * 5;
+            ctx.fillStyle = herb.color;
+            ctx.font = '20px Microsoft YaHei';
+            ctx.textAlign = 'center';
+            ctx.fillText(herb.icon, screenX, CONFIG.groundY - 20 + bounce);
+            
+            // 显示按E提示
+            const dist = Math.abs(herb.x - player.x);
+            if (dist < 50) {
+                ctx.fillStyle = '#ffff00';
+                ctx.font = 'bold 12px Microsoft YaHei';
+                ctx.fillText('按E采集', screenX, CONFIG.groundY - 45 + bounce);
+            }
+        }
+    });
     
     game.particles.forEach(p => p.draw());
     drawUI();
@@ -1620,29 +1926,86 @@ document.addEventListener('keydown', function(e) {
         }
     }
     
-    // v1.2.0 炼丹系统 D
+    // v1.2.0 炼丹系统 D - 打开完整炼丹界面
     if (e.code === 'KeyD' || e.key === 'd' || e.key === 'D') {
-        // 显示可用的丹药和材料
-        let availablePotions = [];
-        Object.keys(RECIPES).forEach(potionName => {
-            const recipe = RECIPES[potionName];
-            let canCraft = true;
-            for (let herb in recipe.ingredients) {
-                if (!player.herbInventory[herb] || player.herbInventory[herb] < recipe.ingredients[herb]) {
-                    canCraft = false;
-                    break;
-                }
-            }
-            if (canCraft) {
-                availablePotions.push(potionName);
+        game.alchemyOpen = !game.alchemyOpen;
+        if (game.alchemyOpen) {
+            game.companionOpen = false; // 关闭其他界面
+            createFloatingText(player.x, player.y - 80, '炼丹界面已打开', '#44ff44');
+        } else {
+            createFloatingText(player.x, player.y - 80, '炼丹界面已关闭', '#aaaaaa');
+        }
+    }
+    
+    // v1.3.0 药材采集 E
+    if (e.code === 'KeyE' || e.key === 'e' || e.key === 'E') {
+        // 检查附近是否有可采集的药材
+        let nearestHerb = null;
+        let nearestDist = 50;
+        game.herbSpawns.forEach((herb, index) => {
+            const dist = Math.abs(herb.x - player.x);
+            if (dist < nearestDist) {
+                nearestDist = dist;
+                nearestHerb = index;
             }
         });
         
-        if (availablePotions.length > 0) {
-            // 按顺序使用第一个可用的丹药
-            player.usePotion(availablePotions[0]);
+        if (nearestHerb !== null) {
+            const herb = game.herbSpawns[nearestHerb];
+            player.herbInventory[herb.name] = (player.herbInventory[herb.name] || 0) + 1;
+            game.herbSpawns.splice(nearestHerb, 1);
+            createFloatingText(player.x, player.y - 80, '采集 ' + herb.icon + herb.name + '!', herb.color);
+            createParticle(player.x, player.y - 30, herb.color, 15);
         } else {
-            createFloatingText(player.x, player.y - 80, '材料不足，无法炼丹', '#888');
+            createFloatingText(player.x, player.y - 80, '附近没有药材', '#888');
+        }
+    }
+    
+    // v1.3.0 仙侣系统 G
+    if (e.code === 'KeyG' || e.key === 'g' || e.key === 'G') {
+        if (player.level < 15) {
+            createFloatingText(player.x, this.y - 80, '15级后才能寻找仙侣', '#ff8800');
+        } else {
+            game.companionOpen = !game.companionOpen;
+            if (game.companionOpen) {
+                game.alchemyOpen = false; // 关闭其他界面
+                createFloatingText(player.x, player.y - 80, '仙侣界面已打开', '#ff00ff');
+            } else {
+                createFloatingText(player.x, player.y - 80, '仙侣界面已关闭', '#aaaaaa');
+            }
+        }
+    }
+    
+    // v1.3.0 仙侣界面内操作
+    if (game.companionOpen) {
+        // 数字键1-4绑定仙侣
+        if (e.code === 'Digit1' || e.key === '1') {
+            player.bindCompanion('素女');
+        } else if (e.code === 'Digit2' || e.key === '2') {
+            player.bindCompanion('剑仙');
+        } else if (e.code === 'Digit3' || e.key === '3') {
+            player.bindCompanion('琴姬');
+        } else if (e.code === 'Digit4' || e.key === '4') {
+            player.bindCompanion('散人');
+        } else if (e.code === 'KeyX' || e.key === 'x' || e.key === 'X') {
+            player.unbindCompanion();
+        }
+    }
+    
+    // v1.3.0 炼丹界面内操作
+    if (game.alchemyOpen) {
+        // 数字键1-5炼制丹药
+        const recipeKeys = Object.keys(RECIPES);
+        if (e.code === 'Digit1' || e.key === '1') {
+            player.usePotion(recipeKeys[0]);
+        } else if (e.code === 'Digit2' || e.key === '2') {
+            player.usePotion(recipeKeys[1]);
+        } else if (e.code === 'Digit3' || e.key === '3') {
+            player.usePotion(recipeKeys[2]);
+        } else if (e.code === 'Digit4' || e.key === '4') {
+            player.usePotion(recipeKeys[3]);
+        } else if (e.code === 'Digit5' || e.key === '5') {
+            player.usePotion(recipeKeys[4]);
         }
     }
     
