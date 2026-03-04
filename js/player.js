@@ -80,6 +80,9 @@ const player = {
             game.addDamageNumber(enemy.x, enemy.y - enemy.height, damage, isCrit);
             
             enemy.takeDamage(damage);
+            
+            // v1.2.7: 攻击音效
+            game.playSound('attack');
         }
     },
 
@@ -100,6 +103,8 @@ const player = {
         this.maxHp = Math.floor(this.maxHp * 1.2);
         this.hp = this.maxHp;
         this.attack = Math.floor(this.attack * 1.15);
+        // v1.2.7: 升级音效
+        game.playSound('levelup');
     },
 
     // v1.1.0: Q版水墨风角色造型

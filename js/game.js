@@ -7,10 +7,64 @@ const game = {
     lastTime: 0,
     enemies: [],
     spawnTimer: 0,
+    // v1.2.7: 怪物生成冷却控制 - 基础间隔3秒，最小1.5秒
     spawnInterval: 3000,
+    minSpawnInterval: 1500,
     killCount: 0,
-    // v1.0.2: 伤害数字
-    damageNumbers: [],
+    startTime: 0,  // v1.2.7: 记录开局时间
+    // v1.2.7: 音效系统
+    soundEnabled: true,
+    
+    // v1.2.7: 根据游戏进度调整生成间隔
+    getAdjustedSpawnInterval() {
+        const elapsed = (Date.now() - this.startTime) / 1000; // 秒
+        // 随着时间推移，生成间隔逐渐缩短，最小1.5秒
+        const reduction = Math.min(elapsed * 50, this.spawnInterval - this.minSpawnInterval);
+        return this.spawnInterval - reduction;
+    },
+    
+    // v1.2.7: 播放音效
+    playSound(type) {
+        if (!this.soundEnabled || !window.AudioContext) return;
+        
+        // 简化音效：使用Web Audio API生成简单音效
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            switch(type) {
+                case 'attack':
+                    oscillator.frequency.value = 440;
+                    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                    oscillator.start(audioCtx.currentTime);
+                    oscillator.stop(audioCtx.currentTime + 0.1);
+                    break;
+                case 'hit':
+                    oscillator.frequency.value = 220;
+                    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                    oscillator.start(audioCtx.currentTime);
+                    oscillator.stop(audioCtx.currentTime + 0.15);
+                    break;
+                case 'levelup':
+                    oscillator.frequency.value = 523;
+                    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    oscillator.frequency.setValueAtTime(659, audioCtx.currentTime + 0.1);
+                    oscillator.frequency.setValueAtTime(784, audioCtx.currentTime + 0.2);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                    oscillator.start(audioCtx.currentTime);
+                    oscillator.stop(audioCtx.currentTime + 0.3);
+                    break;
+            }
+        } catch(e) {
+            // 忽略音效播放错误
+        }
+    },
     
     // v1.0.8: 重新开始
     restart() {

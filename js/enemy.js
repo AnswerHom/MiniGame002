@@ -98,8 +98,12 @@ class Enemy {
             this.alive = false;
             player.exp += this.exp;
             game.killCount++;
+            // v1.2.7: 怪物死亡音效
+            game.playSound('hit');
             return true;
         }
+        // v1.2.7: 受击音效
+        game.playSound('hit');
         return false;
     }
 

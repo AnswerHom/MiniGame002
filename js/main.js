@@ -9,9 +9,10 @@ function update(dt) {
     // 玩家更新
     player.update(dt);
     
-    // 怪物生成
+    // 怪物生成 - v1.2.7: 使用动态生成间隔
     game.spawnTimer += dt * 1000;
-    if (game.spawnTimer >= game.spawnInterval) {
+    const currentInterval = game.getAdjustedSpawnInterval();
+    if (game.spawnTimer >= currentInterval) {
         spawnEnemy();
         game.spawnTimer = 0;
     }
@@ -93,11 +94,14 @@ function startGame() {
     game.spawnTimer = 0;
     game.gameOver = false;
     game.damageNumbers = [];
-    player.x = 100;
+    // v1.2.7: 玩家初始位置优化 - 从x=50开始
+    player.x = 50;
     player.hp = player.maxHp;
     player.exp = 0;
     player.level = 1;
     player.isMoving = true;
+    // v1.2.7: 记录开局时间用于生成冷却控制
+    game.startTime = Date.now();
     requestAnimationFrame(gameLoop);
 }
 
