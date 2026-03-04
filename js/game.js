@@ -1,4 +1,6 @@
-// MiniGame002 - 游戏主逻辑 v1.6.1
+// MiniGame002 - 游戏主逻辑 v1.8.0
+// v1.8.0: 技能系统完整实现 + 战斗体验优化补全
+// v1.7.0: 技能系统雏形 + 战斗爽感提升
 // v1.6.1: 战斗体验优化 - 自动前进/自动停下战斗/自动继续推进
 // v1.6.0: 打击感优化 + 音效系统 + Boss战体验
 // v1.5.0: 战斗状态机 + 战斗场景分离 + 战斗节奏优化 + UI界面重构
@@ -193,7 +195,13 @@ const game = {
     // v1.4.0 符文系统
     runeOpen: false, runes: [], equippedRunes: [null, null, null, null, null, null],
     // v1.4.0 连携系统
-    comboSkillActive: false, comboSkillTimer: 0
+    comboSkillActive: false, comboSkillTimer: 0,
+    // v1.7.0 技能系统
+    skillPoints: 0,  // 技能点
+    gold: 0,  // 金币
+    goldCoins: [],  // v1.8.0 金币列表
+    lootNotifications: [],  // 掉落提示
+    eliteMonsters: []  // 精英怪列表
 };
 
 // 兵器系统
@@ -342,6 +350,47 @@ for (let i = 0; i < 8; i++) game.clouds.push({ x: Math.random() * 2000, y: 50 + 
 for (let i = 0; i < 50; i++) game.stars.push({ x: Math.random() * CONFIG.width, y: Math.random() * (CONFIG.groundY - 100), size: 1 + Math.random() * 2, twinkle: Math.random() * Math.PI * 2, speed: 1 + Math.random() * 3 });
 for (let i = 0; i < 30; i++) game.grass.push({ x: i * 60 + Math.random() * 30, height: 8 + Math.random() * 12, sway: Math.random() * Math.PI * 2 });
 
+// v1.7.0 主动技能系统
+const ACTIVE_SKILLS = {
+    '御剑术': { 
+        name: '御剑术', 
+        icon: '🗡️', 
+        cooldown: 5, 
+        damage: 1.5, 
+        range: 300,
+        description: '远程飞剑伤害',
+        unlockLevel: 1
+    },
+    '剑气斩': { 
+        name: '剑气斩', 
+        icon: '⚔️', 
+        cooldown: 8, 
+        damage: 2.0, 
+        knockback: 100, 
+        description: '范围伤害+击退',
+        unlockLevel: 5
+    },
+    '护体光环': { 
+        name: '护体光环', 
+        icon: '🛡️', 
+        cooldown: 12, 
+        duration: 3, 
+        reflectDamage: 0.5,
+        description: '3秒内免伤+反伤',
+        unlockLevel: 10
+    },
+    '疾风步': { 
+        name: '疾风步', 
+        icon: '💨', 
+        cooldown: 10, 
+        dashDistance: 200, 
+        speedBonus: 1.5,
+        duration: 3,
+        description: '瞬间位移+加速3秒',
+        unlockLevel: 3
+    }
+};
+
 const SKILLS = {
     御剑术: { unlockLevel: 5, cooldown: 5, damage: 1.5, name: '御剑术', icon: '🗡️' },
     剑气斩: { unlockLevel: 10, cooldown: 8, damage: 2.0, name: '剑气斩', icon: '⚔️' },
@@ -375,6 +424,18 @@ const player = {
     mount: null, mountLevel: 1,
     // v1.4.0 符文系统
     runeInventory: [],
+    // v1.7.0 技能系统 - 主动技能槽 4个（对应数字键1/2/3/4）
+    activeSkills: {
+        1: { name: '御剑术', unlocked: false, cooldownTimer: 0, level: 0 },
+        2: { name: '剑气斩', unlocked: false, cooldownTimer: 0, level: 0 },
+        3: { name: '护体光环', unlocked: false, cooldownTimer: 0, level: 0 },
+        4: { name: '疾风步', unlocked: false, cooldownTimer: 0, level: 0 }
+    },
+    skillPoints: 0,  // 技能点
+    // v1.7.0 疾风步状态
+    isDashing: false, dashTimer: 0, dashSpeedBonus: 0,
+    // v1.7.0 护体光环反伤
+    shieldReflecting: false,
     
     getRealm() { return getRealm(this.level); },
     
@@ -795,6 +856,9 @@ const player = {
     
     levelUp() {
         this.level++;
+        // v1.8.0 升级音效
+        playSound('levelup');
+        
         if (this.level < 5) { this.maxHp = 100 + (this.level - 1) * 20; }
         else if (this.level < 10) { this.maxHp = 180 + (this.level - 5) * 25; }
         else if (this.level < 15) { this.maxHp = 280 + (this.level - 10) * 30; }
@@ -961,8 +1025,26 @@ const player = {
     },
     
     takeDamage() {
+        // v1.7.0 护体光环免伤
+        if (this.shieldReflecting) {
+            createFloatingText(this.x, this.y - 60, '免疫!', '#00ffff');
+            return false;
+        }
         if (this.skills.护体神光.active || this.isDodging) return false;
         this.isDodging = true; this.dodgeTimer = 0.5; return true;
+    },
+    
+    // v1.7.0 受到伤害时触发反伤
+    onHitByEnemy(enemy, damage) {
+        // v1.7.0 护体光环反伤
+        if (this.shieldReflecting) {
+            const reflectDamage = damage * 0.5;
+            enemy.takeDamage(reflectDamage);
+            createFloatingText(enemy.x, enemy.y - enemy.height - 20, '反伤 ' + Math.floor(reflectDamage), '#00ffff');
+            createParticle(enemy.x + enemy.width/2, enemy.y - enemy.height/2, '#00ffff', 10);
+            return false;  // 不受伤害
+        }
+        return true;  // 正常受到伤害
     },
     
     useSkill(skillName) {
@@ -986,6 +1068,137 @@ const player = {
             skill.cooldownTimer = skillData.cooldown;
             createFloatingText(this.x, this.y - 80, '护体神光!', '#ffd700');
         }
+    },
+    
+    // v1.7.0 主动技能使用
+    useActiveSkill(slot) {
+        const skill = this.activeSkills[slot];
+        if (!skill || !skill.unlocked) return;
+        if (skill.cooldownTimer > 0) {
+            createFloatingText(this.x, this.y - 80, '冷却中!', '#888');
+            return;
+        }
+        
+        const skillData = ACTIVE_SKILLS[skill.name];
+        
+        // v1.8.0 御剑术 - 远程飞剑
+        if (skill.name === '御剑术') {
+            const damage = this.attack * skillData.damage * (1 + skill.level * 0.2);
+            
+            // 发射飞剑
+            game.projectiles.push(new Projectile(
+                this.x + this.width,
+                this.y - this.height / 2,
+                400,
+                damage,
+                'sword'
+            ));
+            
+            // 特效
+            for (let i = 0; i < 15; i++) {
+                createParticle(this.x + this.width, this.y - this.height/2 + (Math.random() - 0.5) * 40, '#00ffff', 4);
+            }
+            game.screenShake = 0.1; game.screenShakeIntensity = 5;
+            createFloatingText(this.x, this.y - 80, '🗡️ 御剑术!', '#00ffff');
+            // v1.8.0 技能音效
+            playSound('skill');
+            
+            skill.cooldownTimer = skillData.cooldown;
+            
+        } else if (skill.name === '剑气斩') {
+            // 范围伤害 + 击退
+            const damage = this.attack * skillData.damage * (1 + skill.level * 0.2);
+            const knockback = skillData.knockback + skill.level * 20;
+            
+            game.enemies.forEach(enemy => {
+                if (enemy.x > this.x - 50 && enemy.x < this.x + 300) {
+                    enemy.takeDamage(damage);
+                    enemy.x += knockback;  // 击退效果
+                }
+            });
+            
+            // 特效
+            for (let i = 0; i < 30; i++) {
+                createParticle(this.x + 50 + Math.random() * 150, this.y - this.height/2 + (Math.random() - 0.5) * 60, '#00ffff', 5);
+            }
+            game.screenShake = 0.2; game.screenShakeIntensity = 8;
+            createFloatingText(this.x, this.y - 80, '🗡️ 剑气斩!', '#00ffff');
+            
+            skill.cooldownTimer = skillData.cooldown;
+            
+        } else if (skill.name === '护体光环') {
+            // 3秒免伤 + 反伤
+            this.shieldReflecting = true;
+            this.shieldTimer = skillData.duration;
+            
+            // 护体光环特效
+            for (let i = 0; i < 20; i++) {
+                createParticle(this.x + this.width/2, this.y - this.height/2, '#ffd700', 8);
+            }
+            game.screenShake = 0.1; game.screenShakeIntensity = 5;
+            createFloatingText(this.x, this.y - 80, '🛡️ 护体光环!', '#ffd700');
+            
+            skill.cooldownTimer = skillData.cooldown;
+            
+        } else if (skill.name === '疾风步') {
+            // 瞬间位移 + 加速
+            this.x += skillData.dashDistance;
+            this.isDashing = true;
+            this.dashTimer = skillData.duration;
+            this.dashSpeedBonus = skillData.speedBonus;
+            
+            // 疾风步特效
+            for (let i = 0; i < 15; i++) {
+                createParticle(this.x - 50 + Math.random() * 30, this.y - this.height/2, '#88ff88', 4);
+            }
+            game.screenShake = 0.1; game.screenShakeIntensity = 3;
+            createFloatingText(this.x - 50, this.y - 80, '💨 疾风步!', '#88ff88');
+            
+            skill.cooldownTimer = skillData.cooldown;
+        }
+    },
+    
+    // v1.7.0 升级主动技能
+    upgradeActiveSkill(slot) {
+        const skill = this.activeSkills[slot];
+        if (!skill || !skill.unlocked) return;
+        if (game.skillPoints < 1) {
+            createFloatingText(this.x, this.y - 80, '技能点不足!', '#ff4444');
+            return;
+        }
+        
+        game.skillPoints--;
+        skill.level++;
+        
+        const skillData = ACTIVE_SKILLS[skill.name];
+        createFloatingText(this.x, this.y - 80, skillData.icon + skill.name + ' Lv.' + skill.level + '!', '#ffd700');
+        createParticle(this.x, this.y - 30, '#ffd700', 15);
+        // v1.8.0 升级音效
+        playSound('levelup');
+    },
+    
+    // v1.7.0 解锁主动技能
+    unlockActiveSkill(slot) {
+        const skill = this.activeSkills[slot];
+        const skillData = ACTIVE_SKILLS[skill.name];
+        
+        if (this.level < skillData.unlockLevel) {
+            createFloatingText(this.x, this.y - 80, skillData.unlockLevel + '级解锁!', '#ff8800');
+            return false;
+        }
+        
+        if (game.skillPoints < 1) {
+            createFloatingText(this.x, this.y - 80, '需要1技能点解锁!', '#ff4444');
+            return false;
+        }
+        
+        game.skillPoints--;
+        skill.unlocked = true;
+        skill.level = 1;
+        
+        createFloatingText(this.x, this.y - 100, '解锁 ' + skillData.icon + skill.name + '!', '#00ff00');
+        createParticle(this.x, this.y - 30, '#00ff00', 20);
+        return true;
     },
     
     attackTarget(target) {
@@ -1014,6 +1227,24 @@ const player = {
     update(dt) {
         let currentSpeed = this.speed;
         
+        // v1.7.0 疾风步加速
+        if (this.isDashing) {
+            currentSpeed *= this.dashSpeedBonus;
+            this.dashTimer -= dt;
+            if (this.dashTimer <= 0) {
+                this.isDashing = false;
+                this.dashSpeedBonus = 0;
+            }
+        }
+        
+        // v1.7.0 护体光环持续时间
+        if (this.shieldReflecting) {
+            this.shieldTimer -= dt;
+            if (this.shieldTimer <= 0) {
+                this.shieldReflecting = false;
+            }
+        }
+        
         // v1.5.0 战斗状态机 - 推进状态下才能移动
         if (game.battleState === BATTLE_STATES.ADVANCE && !game.isTransitioning) {
             if (this.slowed) { currentSpeed *= 0.7; this.slowTimer -= dt; if (this.slowTimer <= 0) this.slowed = false; }
@@ -1027,6 +1258,11 @@ const player = {
             if (skill.cooldownTimer > 0) skill.cooldownTimer -= dt;
             if (skill.active) { skill.activeTimer -= dt; if (skill.activeTimer <= 0) skill.active = false; }
         });
+        // v1.7.0 主动技能冷却
+        Object.keys(this.activeSkills).forEach(slot => {
+            const skill = this.activeSkills[slot];
+            if (skill.cooldownTimer > 0) skill.cooldownTimer -= dt;
+        });
         if (this.attackCooldown > 0) this.attackCooldown -= dt;
         if (this.attacking) { this.attackFrame += dt * 10; if (this.attackFrame >= 1) this.attacking = false; }
     },
@@ -1039,6 +1275,28 @@ const player = {
             ctx.save(); ctx.globalAlpha = 0.3 + Math.sin(Date.now() * 0.01) * 0.2;
             ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.arc(screenX + this.width/2, this.y - this.height/2, 50, 0, Math.PI * 2); ctx.fill(); ctx.restore();
         }
+        
+        // v1.7.0 护体光环特效
+        if (this.shieldReflecting) {
+            ctx.save(); 
+            ctx.globalAlpha = 0.4 + Math.sin(Date.now() * 0.015) * 0.2;
+            ctx.strokeStyle = '#00ffff';
+            ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(screenX + this.width/2, this.y - this.height/2, 45, 0, Math.PI * 2); ctx.stroke();
+            ctx.fillStyle = 'rgba(0, 255, 255, 0.1)';
+            ctx.beginPath(); ctx.arc(screenX + this.width/2, this.y - this.height/2, 45, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+        }
+        
+        // v1.7.0 疾风步残影
+        if (this.isDashing) {
+            ctx.save();
+            ctx.globalAlpha = 0.3;
+            ctx.fillStyle = '#88ff88';
+            ctx.fillRect(screenX - 30, this.y - this.height, this.width, this.height);
+            ctx.restore();
+        }
+        
         if (this.isDodging) ctx.globalAlpha = 0.5 + Math.sin(Date.now() * 0.02) * 0.3;
         ctx.fillStyle = this.color; ctx.fillRect(screenX, this.y - this.height, this.width, this.height);
         ctx.save();
@@ -1082,7 +1340,12 @@ const ENEMY_TYPES = {
     阴魂: { minLevel: 1, hp: 20, attack: 5, exp: 20, speed: 50, color: '#7b2d8e', special: null },
     妖狼: { minLevel: 5, hp: 30, attack: 10, exp: 35, speed: 80, color: '#8B4513', special: 'fast' },
     毒蛛: { minLevel: 10, hp: 25, attack: 8, exp: 30, speed: 40, color: '#2E8B57', special: 'slow' },
-    僵尸: { minLevel: 15, hp: 50, attack: 12, exp: 50, speed: 30, color: '#4A5D23', special: 'tank' }
+    僵尸: { minLevel: 15, hp: 50, attack: 12, exp: 50, speed: 30, color: '#4A5D23', special: 'tank' },
+    // v1.7.0 精英怪物
+    精英阴魂: { minLevel: 1, hp: 40, attack: 10, exp: 40, speed: 60, color: '#9b4dbe', special: 'elite', elite: true },
+    精英妖狼: { minLevel: 5, hp: 60, attack: 20, exp: 70, speed: 90, color: '#ab6513', special: 'eliteFast', elite: true },
+    精英毒蛛: { minLevel: 10, hp: 50, attack: 16, exp: 60, speed: 50, color: '#3E9B67', special: 'eliteSlow', elite: true },
+    精英僵尸: { minLevel: 15, hp: 100, attack: 24, exp: 100, speed: 35, color: '#5A6D33', special: 'eliteTank', elite: true }
 };
 
 class Enemy {
@@ -1116,7 +1379,40 @@ class Enemy {
     die() {
         this.alive = false;
         game.expOrbs.push(new ExpOrb(this.x + this.width/2, this.y - this.height/2, this.exp));
-        game.killCount++; game.comboCount++; game.comboTimer = 5;
+        game.killCount++; game.comboCount++; game.comboTimer = 2;  // v1.7.0: 2秒连击窗口
+        
+        // v1.7.0 击杀获得技能点 (每5个击杀获得1点)
+        if (game.killCount % 5 === 0) {
+            game.skillPoints++;
+            createFloatingText(player.x, player.y - 120, '💎 获得1技能点!', '#00ffff');
+        }
+        
+        // v1.7.0 金币掉落 - v1.8.0 改为金币对象支持自动拾取
+        const goldDrop = Math.floor(this.exp / 4);
+        if (goldDrop > 0) {
+            // 创建金币对象
+            game.goldCoins.push(new GoldCoin(this.x + this.width/2, this.y - this.height/2, goldDrop));
+            createFloatingText(this.x + this.width/2, this.y - this.height - 40, '💰 +' + goldDrop, '#ffd700');
+        }
+        
+        // v1.7.0 精英怪死亡减速周围敌人
+        if (this.elite) {
+            game.enemies.forEach(enemy => {
+                if (enemy.alive && enemy !== this) {
+                    const dist = Math.abs(enemy.x - this.x);
+                    if (dist < 150) {
+                        enemy.slowed = true;
+                        enemy.slowTimer = 2;
+                    }
+                }
+            });
+            createFloatingText(this.x, this.y - this.height - 60, '💥 减速光环!', '#ff00ff');
+        }
+        
+        // v1.7.0 增强死亡粒子效果
+        for (let i = 0; i < (this.elite ? 30 : 15); i++) {
+            createParticle(this.x + this.width/2, this.y - this.height/2, this.elite ? '#ff00ff' : this.color, this.elite ? 8 : 5);
+        }
         
         // v1.4.0 连携系统 - 检查是否触发连携技
         checkComboSkill();
@@ -1161,7 +1457,12 @@ class Enemy {
         if (game.comboCount >= 10) comboReward = game.comboRewards[10];
         else if (game.comboCount >= 5) comboReward = game.comboRewards[5];
         else if (game.comboCount >= 3) comboReward = game.comboRewards[3];
-        if (comboReward > 0) { player.addExp(comboReward); createFloatingText(this.x, this.y - this.height - 20, game.comboCount + '连杀! +' + comboReward, '#ff00ff'); }
+        if (comboReward > 0) { 
+            player.addExp(comboReward); 
+            createFloatingText(this.x, this.y - this.height - 20, game.comboCount + '连杀! +' + comboReward, '#ff00ff');
+            // v1.8.0 连击音效
+            playSound('combo');
+        }
         for (let i = 0; i < 15; i++) createParticle(this.x + this.width/2, this.y - this.height/2, this.color, 6);
     }
     
@@ -1174,7 +1475,16 @@ class Enemy {
         if (dist > 0 && dist < 300) this.x += this.speed * dt;
         if (dist > 0 && dist < this.attackRange + player.width/2 && this.attackCooldown <= 0) {
             this.attacking = true; this.attackFrame = 0; this.attackCooldown = this.special === 'fast' ? 0.8 : 1.5;
-            if (player.takeDamage()) {
+            
+            // v1.7.0 护体光环反伤检测
+            if (player.shieldReflecting) {
+                const damage = this.attack;
+                const reflectDamage = damage * 0.5;
+                this.takeDamage(reflectDamage);
+                createFloatingText(this.x, this.y - this.height - 20, '反伤 ' + Math.floor(reflectDamage), '#00ffff');
+                createParticle(this.x + this.width/2, this.y - this.height/2, '#00ffff', 10);
+                game.screenShake = 0.1; game.screenShakeIntensity = 3;
+            } else if (player.takeDamage()) {
                 // 防御力减伤
                 let damage = player.defense > 0 ? Math.max(1, this.attack - player.defense * 0.5) : this.attack;
                 player.hp -= damage;
@@ -1286,6 +1596,57 @@ class ExpOrb {
     }
 }
 
+// v1.8.0 金币类 - 支持自动拾取
+class GoldCoin {
+    constructor(x, y, value) { 
+        this.x = x; 
+        this.y = y; 
+        this.value = value; 
+        this.radius = 6; 
+        this.collected = false; 
+        this.floatOffset = Math.random() * Math.PI * 2;
+        this.startX = x;  // 记录初始位置用于动画
+    }
+    update(dt) {
+        this.floatOffset += dt * 4;
+        
+        // v1.8.0 金币自动拾取 - 距离玩家100像素内自动飞向玩家
+        const dx = player.x + player.width/2 - this.x, dy = (player.y - player.height/2) - this.y, dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < 120) { 
+            // 加速飞向玩家
+            this.x += dx * 8 * dt; 
+            this.y += dy * 8 * dt; 
+        }
+        
+        // 拾取距离
+        if (dist < 25) { 
+            this.collected = true; 
+            game.gold += this.value; 
+            createFloatingText(player.x, player.y - 60, '💰 +' + this.value, '#ffd700');
+            // v1.8.0 拾取金币音效
+            playSound('coin');
+        }
+    }
+    draw() {
+        const screenX = this.x - CONFIG.cameraOffset, floatY = Math.sin(this.floatOffset) * 3;
+        
+        // 金币光晕
+        const gradient = ctx.createRadialGradient(screenX, this.y + floatY, 0, screenX, this.y + floatY, this.radius * 2.5);
+        gradient.addColorStop(0, 'rgba(255, 215, 0, 0.6)'); gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
+        ctx.fillStyle = gradient; ctx.beginPath(); ctx.arc(screenX, this.y + floatY, this.radius * 2.5, 0, Math.PI * 2); ctx.fill();
+        
+        // 金币主体
+        ctx.fillStyle = '#ffd700';
+        ctx.beginPath(); ctx.arc(screenX, this.y + floatY, this.radius, 0, Math.PI * 2); ctx.fill();
+        
+        // 金币图案
+        ctx.fillStyle = '#ffaa00';
+        ctx.font = '8px Microsoft YaHei';
+        ctx.textAlign = 'center';
+        ctx.fillText('$', screenX, this.y + floatY + 3);
+    }
+}
+
 class Particle {
     constructor(x, y, color, size) { this.x = x; this.y = y; this.vx = (Math.random() - 0.5) * 200; this.vy = (Math.random() - 0.5) * 200 - 100; this.color = color; this.size = size; this.life = 1; this.decay = 2; }
     update(dt) { this.x += this.vx * dt; this.y += this.vy * dt; this.vy += 300 * dt; this.life -= this.decay * dt; }
@@ -1320,8 +1681,18 @@ function spawnEnemy() {
     if (player.level >= 5) availableTypes.push('妖狼');
     if (player.level >= 10) availableTypes.push('毒蛛');
     if (player.level >= 15) availableTypes.push('僵尸');
-    const type = availableTypes[Math.floor(Math.random() * availableTypes.length)];
-    game.enemies.push(new Enemy(spawnX, type));
+    
+    // v1.7.0 精英怪生成 (15%几率)
+    let type = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+    if (Math.random() < 0.15) {
+        type = '精英' + type;
+    }
+    
+    const enemy = new Enemy(spawnX, type);
+    // v1.7.0 标记精英怪
+    enemy.elite = ENEMY_TYPES[type] && ENEMY_TYPES[type].elite;
+    
+    game.enemies.push(enemy);
     
     // 每1000米生成副本入口
     const newDistance = Math.floor((player.x - 100) / 10);
@@ -1424,8 +1795,14 @@ function tryDropEquipment(enemy) {
     let dropChance = 0.1; // 10%基础掉落
     let quality = '凡品';
     
-    // 精英/首领怪必掉装备
-    if (enemy.type === '阴魂' && Math.random() < 0.3) {
+    // v1.7.0 精英怪必掉装备且高品质
+    if (enemy.elite) {
+        dropChance = 1;
+        const rand = Math.random();
+        if (rand < 0.6) quality = '精品';
+        else if (rand < 0.9) quality = '极品';
+        else quality = '仙品';
+    } else if (enemy.type === '阴魂' && Math.random() < 0.3) {
         dropChance = 1; quality = '精品';
     }
     
@@ -1459,8 +1836,19 @@ function tryDropEquipment(enemy) {
         game.equipment[equipType] = item;
         player.recalcStats();
         
-        createFloatingText(enemy.x, enemy.y - enemy.height - 30, '掉落' + item.name + '!', q.color);
-        createParticle(enemy.x, enemy.y - enemy.height/2, q.color, 15);
+        // v1.7.0 掉落提示
+        const notifyColor = quality === '仙品' ? '#ff00ff' : (quality === '极品' ? '#0088ff' : q.color);
+        createFloatingText(enemy.x, enemy.y - enemy.height - 30, '🎁 获得' + item.name + '!', notifyColor);
+        
+        // v1.7.0 仙品装备专属动画
+        if (quality === '仙品' || quality === '极品') {
+            for (let i = 0; i < 20; i++) {
+                createParticle(enemy.x + enemy.width/2, enemy.y - enemy.height/2, notifyColor, 6);
+            }
+            game.screenShake = 0.1; game.screenShakeIntensity = 3;
+        } else {
+            createParticle(enemy.x, enemy.y - enemy.height/2, q.color, 15);
+        }
     }
     
     // v1.2.0 药材掉落
@@ -1620,6 +2008,8 @@ function update(dt) {
     game.enemies.forEach(enemy => { if (!enemy.alive) return; const dist = Math.abs((player.x + player.width/2) - (enemy.x + enemy.width/2)); if (dist < player.attackRange) player.attackTarget(enemy); });
     game.enemies = game.enemies.filter(e => e.alive);
     game.expOrbs.forEach(orb => orb.update(actualDt)); game.expOrbs = game.expOrbs.filter(orb => !orb.collected);
+    // v1.8.0 金币自动拾取
+    game.goldCoins.forEach(coin => coin.update(actualDt)); game.goldCoins = game.goldCoins.filter(coin => !coin.collected);
     game.particles.forEach(p => p.update(actualDt)); game.particles = game.particles.filter(p => p.life > 0);
     game.projectiles.forEach(p => p.update(actualDt)); game.projectiles = game.projectiles.filter(p => p.alive);
     game.clouds.forEach(cloud => { cloud.x += cloud.speed * actualDt; if (cloud.x > player.x + CONFIG.width) cloud.x = player.x - cloud.width; });
@@ -1851,6 +2241,57 @@ function drawUI() {
     // 技能提示
     ctx.fillStyle = '#888'; ctx.font = '10px Microsoft YaHei'; ctx.textAlign = 'left';
     ctx.fillText('按空格释放技能', 20, CONFIG.height - 8);
+    
+    // v1.7.0 主动技能UI (左侧底部)
+    let activeSkillX = 200;
+    Object.keys(player.activeSkills).forEach(slot => {
+        const skill = player.activeSkills[slot];
+        const skillData = ACTIVE_SKILLS[skill.name];
+        
+        // 技能槽背景
+        ctx.fillStyle = skill.unlocked ? (skill.cooldownTimer > 0 ? '#444' : '#222') : '#111';
+        ctx.strokeStyle = skill.unlocked ? '#00ff00' : '#444';
+        ctx.lineWidth = skill.unlocked ? 2 : 1;
+        ctx.beginPath(); ctx.arc(activeSkillX + 18, CONFIG.height - 35, 18, 0, Math.PI * 2); 
+        ctx.fill(); ctx.stroke();
+        
+        if (skill.unlocked) {
+            // 技能图标
+            ctx.fillStyle = '#fff'; ctx.font = '16px Microsoft YaHei'; ctx.textAlign = 'center';
+            ctx.fillText(skillData.icon, activeSkillX + 18, CONFIG.height - 30);
+            
+            // 冷却遮罩
+            if (skill.cooldownTimer > 0) {
+                ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                ctx.beginPath(); ctx.arc(activeSkillX + 18, CONFIG.height - 35, 18, -Math.PI/2, -Math.PI/2 + (skill.cooldownTimer / skillData.cooldown) * Math.PI * 2); ctx.fill();
+            }
+            
+            // 技能等级
+            ctx.fillStyle = '#ffd700'; ctx.font = 'bold 10px Microsoft YaHei';
+            ctx.fillText('Lv.' + skill.level, activeSkillX + 18, CONFIG.height - 12);
+        } else {
+            // 未解锁显示问号和需求等级
+            ctx.fillStyle = '#444'; ctx.font = 'bold 14px Microsoft YaHei'; ctx.textAlign = 'center';
+            ctx.fillText('?', activeSkillX + 18, CONFIG.height - 30);
+            ctx.fillStyle = '#666'; ctx.font = '9px Microsoft YaHei';
+            ctx.fillText('L.' + skillData.unlockLevel, activeSkillX + 18, CONFIG.height - 12);
+        }
+        
+        // 快捷键提示
+        ctx.fillStyle = skill.unlocked ? '#00ffff' : '#444';
+        ctx.font = 'bold 9px Microsoft YaHei';
+        ctx.fillText(slot, activeSkillX + 18, CONFIG.height - 52);
+        
+        activeSkillX += 45;
+    });
+    
+    // v1.7.0 技能点显示
+    ctx.fillStyle = '#00ffff'; ctx.font = 'bold 11px Microsoft YaHei'; ctx.textAlign = 'left';
+    ctx.fillText('💎 技能点: ' + game.skillPoints, 20, 70);
+    
+    // v1.7.0 金币显示
+    ctx.fillStyle = '#ffd700'; ctx.font = 'bold 11px Microsoft YaHei';
+    ctx.fillText('💰 金币: ' + game.gold, 120, 70);
     
     // ===== 兵器切换UI =====
     let weaponX = 100;
@@ -2459,6 +2900,8 @@ function draw() {
     }
     
     game.expOrbs.forEach(orb => orb.draw());
+    // v1.8.0 绘制金币
+    game.goldCoins.forEach(coin => coin.draw());
     game.enemies.forEach(enemy => enemy.draw());
     game.projectiles.forEach(p => p.draw());
     player.draw();
@@ -2587,12 +3030,23 @@ document.addEventListener('keydown', function(e) {
         }
     }
     
-    // 兵器切换 1/2/3
+    // v1.7.0 主动技能 1/2/3/4
     if (e.code === 'Digit1' || e.key === '1') {
-        player.switchWeapon('剑');
+        player.useActiveSkill(1);
     } else if (e.code === 'Digit2' || e.key === '2') {
-        player.switchWeapon('刀');
+        player.useActiveSkill(2);
     } else if (e.code === 'Digit3' || e.key === '3') {
+        player.useActiveSkill(3);
+    } else if (e.code === 'Digit4' || e.key === '4') {
+        player.useActiveSkill(4);
+    }
+    
+    // 兵器切换 4/5/6
+    if (e.code === 'Digit4' || e.key === '4') {
+        player.switchWeapon('剑');
+    } else if (e.code === 'Digit5' || e.key === '5') {
+        player.switchWeapon('刀');
+    } else if (e.code === 'Digit6' || e.key === '6') {
         player.switchWeapon('长枪');
     }
     
@@ -2830,3 +3284,107 @@ document.addEventListener('keydown', function(e) {
 });
 
 window.onload = startGame;
+
+// ===== v1.8.0 音效系统 =====
+const AudioSystem = {
+    context: null,
+    
+    init() {
+        try {
+            this.context = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) {
+            console.log('Web Audio API not supported');
+        }
+    },
+    
+    play(type) {
+        if (!this.context) return;
+        
+        if (this.context.state === 'suspended') {
+            this.context.resume();
+        }
+        
+        const now = this.context.currentTime;
+        
+        if (type === 'hit') {
+            const osc = this.context.createOscillator();
+            const gain = this.context.createGain();
+            osc.connect(gain);
+            gain.connect(this.context.destination);
+            osc.frequency.setValueAtTime(200, now);
+            osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.start(now);
+            osc.stop(now + 0.1);
+            
+        } else if (type === 'combo') {
+            const baseFreq = 300 + (game.comboCount || 0) * 20;
+            const osc = this.context.createOscillator();
+            const gain = this.context.createGain();
+            osc.type = 'sine';
+            osc.connect(gain);
+            gain.connect(this.context.destination);
+            osc.frequency.setValueAtTime(baseFreq, now);
+            osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.5, now + 0.15);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+            osc.start(now);
+            osc.stop(now + 0.15);
+            
+        } else if (type === 'coin') {
+            const osc = this.context.createOscillator();
+            const gain = this.context.createGain();
+            osc.type = 'sine';
+            osc.connect(gain);
+            gain.connect(this.context.destination);
+            osc.frequency.setValueAtTime(1200, now);
+            osc.frequency.setValueAtTime(1600, now + 0.05);
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.start(now);
+            osc.stop(now + 0.1);
+            
+        } else if (type === 'skill') {
+            const osc = this.context.createOscillator();
+            const gain = this.context.createGain();
+            osc.type = 'triangle';
+            osc.connect(gain);
+            gain.connect(this.context.destination);
+            osc.frequency.setValueAtTime(400, now);
+            osc.frequency.exponentialRampToValueAtTime(800, now + 0.2);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+            osc.start(now);
+            osc.stop(now + 0.2);
+            
+        } else if (type === 'levelup') {
+            const osc1 = this.context.createOscillator();
+            const osc2 = this.context.createOscillator();
+            const gain = this.context.createGain();
+            osc1.type = 'sine';
+            osc2.type = 'sine';
+            osc1.connect(gain);
+            osc2.connect(gain);
+            gain.connect(this.context.destination);
+            osc1.frequency.setValueAtTime(523, now);
+            osc1.frequency.setValueAtTime(659, now + 0.1);
+            osc1.frequency.setValueAtTime(784, now + 0.2);
+            osc2.frequency.setValueAtTime(523, now);
+            osc2.frequency.setValueAtTime(659, now + 0.1);
+            osc2.frequency.setValueAtTime(784, now + 0.2);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+            osc1.start(now);
+            osc2.start(now);
+            osc1.stop(now + 0.3);
+            osc2.stop(now + 0.3);
+        }
+    }
+};
+
+AudioSystem.init();
+
+function playSound(type) {
+    AudioSystem.play(type);
+}
