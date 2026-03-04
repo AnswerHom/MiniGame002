@@ -848,14 +848,10 @@ const player = {
             }
         }
         
-        // v1.6.1 简化战斗逻辑：检测附近有怪物时停止前进并战斗
-        const nearbyEnemy = game.enemies.find(enemy => enemy.alive && Math.abs(enemy.x - this.x) < this.attackRange + 50);
+        // 简化战斗逻辑：始终前进
+        if (this.slowed) { currentSpeed *= 0.7; this.slowTimer -= dt; if (this.slowTimer <= 0) this.slowed = false; }
+        this.x += currentSpeed * dt;
         
-        // 没有怪物时继续前进
-        if (!nearbyEnemy) {
-            if (this.slowed) { currentSpeed *= 0.7; this.slowTimer -= dt; if (this.slowTimer <= 0) this.slowed = false; }
-            this.x += currentSpeed * dt;
-        }
         game.distance = Math.floor((this.x - 100) / 10);
         CONFIG.cameraOffset = this.x - 150;
         if (this.isDodging) { this.dodgeTimer -= dt; if (this.dodgeTimer <= 0) this.isDodging = false; }
