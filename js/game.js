@@ -1,4 +1,5 @@
-// MiniGame002 - 游戏主逻辑 v1.3.0
+// MiniGame002 - 游戏主逻辑 v1.4.0
+// v1.4.0: 宗门系统 + 坐骑系统 + 连携系统 + 符文系统
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -160,7 +161,15 @@ const game = {
     // v1.2.0 药材采集
     herbSpawns: [], herbSpawnTimer: 0,
     // v1.3.0 仙侣系统
-    companionOpen: false, companion: null, companionSkillTimer: 0
+    companionOpen: false, companion: null, companionSkillTimer: 0,
+    // v1.4.0 宗门系统
+    sectionOpen: false, section: null, sectionContrib: 0, sectionTasks: {},
+    // v1.4.0 坐骑系统
+    mountOpen: false, mount: null, mountLevel: 1, isMounted: false,
+    // v1.4.0 符文系统
+    runeOpen: false, runes: [], equippedRunes: [null, null, null, null, null, null],
+    // v1.4.0 连携系统
+    comboSkillActive: false, comboSkillTimer: 0
 };
 
 // 兵器系统
@@ -253,6 +262,58 @@ const COMPANION_QUALITY_COLORS = {
     '传说': '#ff00ff'
 };
 
+// ===== v1.4.0 宗门系统配置 =====
+const SECTIONS = {
+    '青云宗': { name: '青云宗', icon: '🏛️', bonus: 'attack', bonusValue: 0.10, description: '攻击加成+10%', requiredRealm: '筑基' },
+    '玄冰宫': { name: '玄冰宫', icon: '❄️', bonus: 'defense', bonusValue: 0.10, description: '防御加成+10%', requiredRealm: '金丹' },
+    '天机阁': { name: '天机阁', icon: '📚', bonus: 'exp', bonusValue: 0.15, description: '经验加成+15%', requiredRealm: '元婴' },
+    '万兽山': { name: '万兽山', icon: '🦁', bonus: 'pet', bonusValue: 0.10, description: '灵宠强化+10%', requiredRealm: '金丹' }
+};
+
+const SECTION_TASKS = {
+    '击杀怪物': { name: '击杀怪物', target: 10, reward: 50, icon: '⚔️' },
+    '采集药材': { name: '采集药材', target: 5, reward: 30, icon: '🌿' },
+    '挑战副本': { name: '挑战副本', target: 1, reward: 100, icon: '🏰' }
+};
+
+// ===== v1.4.0 坐骑系统配置 =====
+const MOUNTS = {
+    '灵鹿': { name: '灵鹿', quality: '普通', icon: '🦌', speedBonus: 0.20, attackBonus: 0, unlockLevel: 25 },
+    '云鹤': { name: '云鹤', quality: '优秀', icon: '🦢', speedBonus: 0.30, attackBonus: 5, unlockLevel: 30 },
+    '麒麟': { name: '麒麟', quality: '稀有', icon: '🦓', speedBonus: 0.40, attackBonus: 10, unlockLevel: 35 },
+    '鲲鹏': { name: '鲲鹏', quality: '传说', icon: '🐦', speedBonus: 0.50, attackBonus: 0.15, unlockLevel: 40 }
+};
+
+const MOUNT_QUALITY_COLORS = {
+    '普通': '#ffffff',
+    '优秀': '#00ff00',
+    '稀有': '#0088ff',
+    '传说': '#ff00ff'
+};
+
+// ===== v1.4.0 符文系统配置 =====
+const RUNES = {
+    '力量符文': { name: '力量符文', quality: '普通', icon: '💪', stat: 'attack', statValue: 0.05 },
+    '坚固符文': { name: '坚固符文', quality: '普通', icon: '🛡️', stat: 'defense', statValue: 0.05 },
+    '敏捷符文': { name: '敏捷符文', quality: '普通', icon: '⚡', stat: 'speed', statValue: 0.05 },
+    '暴击符文': { name: '暴击符文', quality: '稀有', icon: '💥', stat: 'critRate', statValue: 0.03 },
+    '生命符文': { name: '生命符文', quality: '稀有', icon: '❤️', stat: 'maxHp', statValue: 0.10 },
+    '神圣符文': { name: '神圣符文', quality: '传说', icon: '✨', stat: 'skillDamage', statValue: 0.15 }
+};
+
+const RUNE_QUALITY_COLORS = {
+    '普通': '#ffffff',
+    '稀有': '#0088ff',
+    '传说': '#ff00ff'
+};
+
+// ===== v1.4.0 连携系统配置 =====
+const COMBO_SKILLS = {
+    5: { name: '连携技·小', damageMult: 0.5, color: '#ffff00', text: '连击!' },
+    10: { name: '连携技·中', damageMult: 1.0, color: '#ff8800', text: '连击!!' },
+    20: { name: '连携技·大', damageMult: 2.0, color: '#ff00ff', text: '连击!!!' }
+};
+
 for (let i = 0; i < 8; i++) game.clouds.push({ x: Math.random() * 2000, y: 50 + Math.random() * 150, width: 100 + Math.random() * 150, speed: 10 + Math.random() * 20, opacity: 0.1 + Math.random() * 0.2 });
 for (let i = 0; i < 50; i++) game.stars.push({ x: Math.random() * CONFIG.width, y: Math.random() * (CONFIG.groundY - 100), size: 1 + Math.random() * 2, twinkle: Math.random() * Math.PI * 2, speed: 1 + Math.random() * 3 });
 for (let i = 0; i < 30; i++) game.grass.push({ x: i * 60 + Math.random() * 30, height: 8 + Math.random() * 12, sway: Math.random() * Math.PI * 2 });
@@ -284,6 +345,12 @@ const player = {
     pets: [], activePet: null, permanentAttackBonus: 0,
     // v1.3.0 仙侣系统
     companion: null, companionSkillReady: true,
+    // v1.4.0 宗门系统
+    section: null, sectionContrib: 0,
+    // v1.4.0 坐骑系统
+    mount: null, mountLevel: 1,
+    // v1.4.0 符文系统
+    runeInventory: [],
     
     getRealm() { return getRealm(this.level); },
     
@@ -403,7 +470,23 @@ const player = {
         if (this.companion) {
             attack += this.companion.attackBonus;
         }
-        this.attack = attack;
+        // v1.4.0 坐骑攻击加成
+        if (this.mount) {
+            if (typeof this.mount.attackBonus === 'number') {
+                attack += this.mount.attackBonus;
+            } else {
+                attack *= (1 + this.mount.attackBonus);
+            }
+        }
+        // v1.4.0 符文攻击加成
+        attack *= (1 + this.getRuneBonus('attack'));
+        
+        // v1.4.0 宗门攻击加成
+        if (this.section && this.section.bonus === 'attack') {
+            attack = Math.floor(attack * (1 + this.section.bonusValue));
+        }
+        
+        this.attack = Math.floor(attack);
         
         // 防御力
         this.defense = this.getDefense();
@@ -412,6 +495,12 @@ const player = {
         if (this.activePet) {
             this.defense += this.activePet.defense * this.activePet.level;
         }
+        
+        // v1.4.0 宗门防御加成 + 符文防御加成
+        if (this.section && this.section.bonus === 'defense') {
+            this.defense = Math.floor(this.defense * (1 + this.section.bonusValue));
+        }
+        this.defense = Math.floor(this.defense * (1 + this.getRuneBonus('defense')));
         
         // 生命上限
         let maxHp;
@@ -427,16 +516,27 @@ const player = {
         if (this.companion) {
             maxHp += this.companion.lifeBonus;
         }
-        this.maxHp = maxHp;
+        // v1.4.0 符文生命加成
+        maxHp *= (1 + this.getRuneBonus('maxHp'));
+        this.maxHp = Math.floor(maxHp);
         
         // v1.2.0 灵宠速度加成
         let speed = 150;
         if (this.activePet) {
             speed += this.activePet.speed * this.activePet.level;
         }
-        // v1.3.0 仙侣速度加成（如果有）
-        // 仙侣不直接加成速度，但合体时可以触发技能
-        this.speed = speed;
+        // v1.4.0 坐骑速度加成
+        if (this.mount) {
+            speed *= (1 + this.mount.speedBonus);
+        }
+        // v1.4.0 符文速度加成
+        speed *= (1 + this.getRuneBonus('speed'));
+        this.speed = Math.floor(speed);
+        
+        // v1.4.0 符文暴击率加成
+        let critRate = 0.05;
+        critRate += this.getRuneBonus('critRate');
+        this.critRate = critRate;
     },
     
     // v1.2.0 炼丹：使用丹药
@@ -687,11 +787,152 @@ const player = {
         if (this.level > 1 && (this.level - 1) % 5 === 0) createFloatingText(this.x, this.y - 70, '突破! ' + realm.name, '#ff00ff');
     },
     
+    // v1.4.0 宗门系统：加入宗门
+    joinSection(sectionName) {
+        if (this.level < 20) {
+            createFloatingText(this.x, this.y - 80, '20级后才能加入宗门', '#ff8800');
+            return false;
+        }
+        const sectionData = SECTIONS[sectionName];
+        if (!sectionData) return false;
+        
+        this.section = { name: sectionName, icon: sectionData.icon, bonus: sectionData.bonus, bonusValue: sectionData.bonusValue };
+        this.sectionContrib = 0;
+        
+        // 初始化宗门任务
+        game.sectionTasks = {
+            '击杀怪物': { name: '击杀怪物', target: 10, progress: 0, reward: 50, icon: '⚔️' },
+            '采集药材': { name: '采集药材', target: 5, progress: 0, reward: 30, icon: '🌿' }
+        };
+        
+        this.recalcStats();
+        createFloatingText(this.x, this.y - 100, '加入 ' + sectionData.icon + sectionName + '!', '#ffd700');
+        return true;
+    },
+    
+    // v1.4.0 宗门系统：离开宗门
+    leaveSection() {
+        if (!this.section) {
+            createFloatingText(this.x, this.y - 80, '没有加入宗门', '#888');
+            return;
+        }
+        const sectionName = this.section.name;
+        this.section = null;
+        this.sectionContrib = 0;
+        game.sectionTasks = {};
+        this.recalcStats();
+        createFloatingText(this.x, this.y - 80, '已离开 ' + sectionName, '#aaaaaa');
+    },
+    
+    // v1.4.0 坐骑系统：装备坐骑
+    equipMount(mountName) {
+        const mountData = MOUNTS[mountName];
+        if (!mountData) return false;
+        
+        if (this.level < mountData.unlockLevel) {
+            createFloatingText(this.x, this.y - 80, mountData.unlockLevel + '级后才能解锁' + mountData.name, '#ff8800');
+            return false;
+        }
+        
+        this.mount = { name: mountName, icon: mountData.icon, quality: mountData.quality, speedBonus: mountData.speedBonus, attackBonus: mountData.attackBonus };
+        game.isMounted = true;
+        this.recalcStats();
+        createFloatingText(this.x, this.y - 100, '装备坐骑 ' + mountData.icon + mountData.name + '!', MOUNT_QUALITY_COLORS[mountData.quality]);
+        return true;
+    },
+    
+    // v1.4.0 坐骑系统：下骑
+    unequipMount() {
+        if (!this.mount) {
+            createFloatingText(this.x, this.y - 80, '没有装备坐骑', '#888');
+            return;
+        }
+        const mountName = this.mount.name;
+        this.mount = null;
+        game.isMounted = false;
+        this.recalcStats();
+        createFloatingText(this.x, this.y - 80, '已下骑', '#aaaaaa');
+    },
+    
+    // v1.4.0 符文系统：装备符文
+    equipRune(runeName, slotIndex) {
+        const runeData = RUNES[runeName];
+        if (!runeData) return false;
+        
+        if (slotIndex < 0 || slotIndex >= game.equippedRunes.length) return false;
+        
+        // 检查背包中是否有这个符文
+        const runeIndex = this.runeInventory.findIndex(r => r && r.name === runeName);
+        if (runeIndex === -1) {
+            createFloatingText(this.x, this.y - 80, '没有这个符文', '#ff8800');
+            return false;
+        }
+        
+        // 卸下当前槽位的符文
+        if (game.equippedRunes[slotIndex]) {
+            this.runeInventory.push(game.equippedRunes[slotIndex]);
+        }
+        
+        // 装备新符文
+        game.equippedRunes[slotIndex] = this.runeInventory[runeIndex];
+        this.runeInventory.splice(runeIndex, 1);
+        
+        this.recalcStats();
+        createFloatingText(this.x, this.y - 100, '装备符文 ' + runeData.icon + runeName, RUNE_QUALITY_COLORS[runeData.quality]);
+        return true;
+    },
+    
+    // v1.4.0 符文系统：卸下符文
+    unequipRune(slotIndex) {
+        if (slotIndex < 0 || slotIndex >= game.equippedRunes.length) return false;
+        
+        const rune = game.equippedRunes[slotIndex];
+        if (!rune) return false;
+        
+        this.runeInventory.push(rune);
+        game.equippedRunes[slotIndex] = null;
+        
+        this.recalcStats();
+        createFloatingText(this.x, this.y - 80, '卸下符文', '#aaaaaa');
+        return true;
+    },
+    
+    // v1.4.0 获取符文属性加成
+    getRuneBonus(stat) {
+        let bonus = 0;
+        game.equippedRunes.forEach(rune => {
+            if (rune && rune.stat === stat) {
+                bonus += rune.statValue;
+            }
+        });
+        return bonus;
+    },
+    
     addExp(amount) {
         // v1.3.0 仙侣经验加成
-        const expMultiplier = this.getExpBonus();
+        let expMultiplier = this.getExpBonus();
+        
+        // v1.4.0 宗门经验加成
+        if (this.section && this.section.bonus === 'exp') {
+            expMultiplier += this.section.bonusValue;
+        }
+        
         const finalAmount = Math.floor(amount * expMultiplier);
         this.exp += finalAmount;
+        
+        // v1.4.0 宗门任务进度
+        if (this.section) {
+            const taskKey = '击杀怪物';
+            if (game.sectionTasks && game.sectionTasks[taskKey]) {
+                game.sectionTasks[taskKey].progress++;
+                if (game.sectionTasks[taskKey].progress >= game.sectionTasks[taskKey].target) {
+                    this.sectionContrib += game.sectionTasks[taskKey].reward;
+                    createFloatingText(this.x, this.y - 100, '宗门任务完成! +' + game.sectionTasks[taskKey].reward + '贡献', '#ffd700');
+                    game.sectionTasks[taskKey].progress = 0;
+                }
+            }
+        }
+        
         if (this.exp >= this.requiredExp) { this.exp -= this.requiredExp; this.levelUp(); }
     },
     
@@ -849,11 +1090,19 @@ class Enemy {
         game.expOrbs.push(new ExpOrb(this.x + this.width/2, this.y - this.height/2, this.exp));
         game.killCount++; game.comboCount++; game.comboTimer = 5;
         
+        // v1.4.0 连携系统 - 检查是否触发连携技
+        checkComboSkill();
+        
         // 击杀获得怒气
         player.addRage(10);
         
         // 尝试掉落装备
         tryDropEquipment(this);
+        
+        // v1.4.0 符文掉落 - BOSS战利品
+        if (this.isBoss || Math.random() < 0.05) {
+            tryDropRune(this);
+        }
         
         // 副本中击杀
         if (game.dungeon) {
@@ -1612,9 +1861,68 @@ function drawUI() {
         ctx.fillText(comp.icon + comp.name, 293, 131);
     }
     
+    // ===== v1.4.0 宗门UI =====
+    if (player.section) {
+        ctx.fillStyle = '#aaa'; ctx.font = '10px Microsoft YaHei';
+        ctx.fillText('宗门:', 250, 145);
+        
+        const sect = player.section;
+        ctx.fillStyle = '#333';
+        ctx.strokeStyle = '#ffd700';
+        ctx.lineWidth = 2;
+        ctx.fillRect(290, 135, 60, 16);
+        ctx.strokeRect(290, 135, 60, 16);
+        ctx.fillStyle = '#ffd700';
+        ctx.font = '9px Microsoft YaHei';
+        ctx.fillText(sect.icon + sect.name, 293, 146);
+        
+        // 宗门贡献
+        ctx.fillStyle = '#aaa'; ctx.font = '9px Microsoft YaHei';
+        ctx.fillText('贡:' + player.sectionContrib, 355, 146);
+    }
+    
+    // ===== v1.4.0 坐骑UI =====
+    if (player.mount) {
+        ctx.fillStyle = '#aaa'; ctx.font = '10px Microsoft YaHei';
+        ctx.fillText('坐骑:', 420, 130);
+        
+        const mount = player.mount;
+        ctx.fillStyle = '#333';
+        ctx.strokeStyle = MOUNT_QUALITY_COLORS[mount.quality];
+        ctx.lineWidth = 2;
+        ctx.fillRect(460, 120, 50, 16);
+        ctx.strokeRect(460, 120, 50, 16);
+        ctx.fillStyle = MOUNT_QUALITY_COLORS[mount.quality];
+        ctx.font = '9px Microsoft YaHei';
+        ctx.fillText(mount.icon + mount.name, 463, 131);
+    }
+    
+    // ===== v1.4.0 符文UI =====
+    let runeX = 420;
+    let hasRunes = false;
+    game.equippedRunes.forEach((rune, index) => {
+        if (rune) {
+            hasRunes = true;
+            const runeData = RUNES[rune.name];
+            ctx.fillStyle = '#333';
+            ctx.strokeStyle = RUNE_QUALITY_COLORS[runeData.quality];
+            ctx.lineWidth = 1;
+            ctx.fillRect(runeX, 145, 25, 14);
+            ctx.strokeRect(runeX, 145, 25, 14);
+            ctx.fillStyle = RUNE_QUALITY_COLORS[runeData.quality];
+            ctx.font = '8px Microsoft YaHei';
+            ctx.fillText(runeData.icon, runeX + 2, 155);
+        }
+        runeX += 28;
+    });
+    if (hasRunes) {
+        ctx.fillStyle = '#aaa'; ctx.font = '9px Microsoft YaHei';
+        ctx.fillText('符文:', 420, 143);
+    }
+    
     // ===== v1.2.0 炼丹/灵宠/仙侣提示 =====
     ctx.fillStyle = '#888'; ctx.font = '9px Microsoft YaHei';
-    ctx.fillText('D:炼丹 灵宠:C 仙侣:G 采集:E', CONFIG.width - 140, CONFIG.height - 8);
+    ctx.fillText('D:炼丹 灵宠:C 仙侣:G 采集:E 宗门:J 坐骑:K 符文:R', CONFIG.width - 180, CONFIG.height - 8);
     
     // ===== v1.2.0 野生灵宠提示 =====
     if (game.wildPet) {
@@ -1624,6 +1932,187 @@ function drawUI() {
         ctx.fillText('发现野生 ' + game.wildPet.icon + game.wildPet.name + '!', CONFIG.width/2, 170);
         ctx.fillStyle = '#fff'; ctx.font = '11px Microsoft YaHei';
         ctx.fillText('按C捕捉 | 击杀后消失', CONFIG.width/2, 190);
+    }
+    
+    // v1.4.0 宗门界面
+    if (game.sectionOpen) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+        ctx.fillRect(CONFIG.width/2 - 200, 50, 400, 350);
+        ctx.strokeStyle = '#ffd700';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(CONFIG.width/2 - 200, 50, 400, 350);
+        
+        ctx.fillStyle = '#ffd700';
+        ctx.font = 'bold 24px Microsoft YaHei';
+        ctx.textAlign = 'center';
+        ctx.fillText('🏛️ 宗门系统', CONFIG.width/2, 85);
+        
+        // 当前宗门状态
+        ctx.fillStyle = '#fff';
+        ctx.font = '14px Microsoft YaHei';
+        ctx.textAlign = 'left';
+        ctx.fillText('当前宗门: ' + (player.section ? player.section.icon + player.section.name : '未加入'), CONFIG.width/2 - 180, 120);
+        if (player.section) {
+            ctx.fillText('贡献值: ' + player.sectionContrib, CONFIG.width/2 - 180, 145);
+        }
+        
+        // 宗门任务
+        if (player.section && game.sectionTasks) {
+            ctx.fillStyle = '#ff8800';
+            ctx.font = 'bold 14px Microsoft YaHei';
+            ctx.fillText('宗门任务:', CONFIG.width/2 - 180, 180);
+            
+            let taskY = 205;
+            Object.keys(game.sectionTasks).forEach(taskKey => {
+                const task = game.sectionTasks[taskKey];
+                ctx.fillStyle = '#fff';
+                ctx.font = '12px Microsoft YaHei';
+                ctx.fillText(task.icon + task.name + ': ' + task.progress + '/' + task.target + ' (奖励:' + task.reward + ')', CONFIG.width/2 - 180, taskY);
+                taskY += 22;
+            });
+        }
+        
+        // 宗门列表
+        let y = player.section ? 280 : 160;
+        ctx.fillStyle = '#00ff00';
+        ctx.font = 'bold 14px Microsoft YaHei';
+        ctx.textAlign = 'center';
+        ctx.fillText('可加入宗门 (20级开放)', CONFIG.width/2, y);
+        y += 25;
+        
+        Object.keys(SECTIONS).forEach((sectName, index) => {
+            const sect = SECTIONS[sectName];
+            const canJoin = player.level >= 20;
+            ctx.fillStyle = canJoin ? '#ffd700' : '#666';
+            ctx.font = '12px Microsoft YaHei';
+            ctx.textAlign = 'left';
+            ctx.fillText((index + 1) + '. ' + sect.icon + sectName + ' (' + sect.quality + ')', CONFIG.width/2 - 180, y);
+            ctx.fillText(sect.description, CONFIG.width/2, y);
+            y += 20;
+        });
+        
+        ctx.fillStyle = '#fff';
+        ctx.font = '12px Microsoft YaHei';
+        ctx.textAlign = 'center';
+        ctx.fillText('按数字键1-4加入宗门 | 按X离开宗门 | 按J关闭', CONFIG.width/2, 370);
+    }
+    
+    // v1.4.0 坐骑界面
+    if (game.mountOpen) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+        ctx.fillRect(CONFIG.width/2 - 200, 50, 400, 350);
+        ctx.strokeStyle = '#00ff00';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(CONFIG.width/2 - 200, 50, 400, 350);
+        
+        ctx.fillStyle = '#00ff00';
+        ctx.font = 'bold 24px Microsoft YaHei';
+        ctx.textAlign = 'center';
+        ctx.fillText('🦌 坐骑系统', CONFIG.width/2, 85);
+        
+        // 当前坐骑状态
+        ctx.fillStyle = '#fff';
+        ctx.font = '14px Microsoft YaHei';
+        ctx.textAlign = 'left';
+        ctx.fillText('当前坐骑: ' + (player.mount ? player.mount.icon + player.mount.name : '未装备'), CONFIG.width/2 - 180, 120);
+        if (player.mount) {
+            const mountData = MOUNTS[player.mount.name];
+            ctx.fillText('速度加成: +' + Math.floor(mountData.speedBonus * 100) + '%', CONFIG.width/2 - 180, 145);
+            if (mountData.attackBonus > 0) {
+                ctx.fillText('攻击加成: +' + (typeof mountData.attackBonus === 'number' ? mountData.attackBonus : Math.floor(mountData.attackBonus * 100) + '%'), CONFIG.width/2 - 180, 170);
+            }
+        }
+        
+        // 坐骑列表
+        let y = 210;
+        ctx.fillStyle = '#00ff00';
+        ctx.font = 'bold 14px Microsoft YaHei';
+        ctx.textAlign = 'center';
+        ctx.fillText('可解锁坐骑 (25级开放)', CONFIG.width/2, y);
+        y += 25;
+        
+        Object.keys(MOUNTS).forEach((mountName, index) => {
+            const mount = MOUNTS[mountName];
+            const canUnlock = player.level >= mount.unlockLevel;
+            ctx.fillStyle = canUnlock ? MOUNT_QUALITY_COLORS[mount.quality] : '#666';
+            ctx.font = '12px Microsoft YaHei';
+            ctx.textAlign = 'left';
+            ctx.fillText((index + 1) + '. ' + mount.icon + mountName + ' (' + mount.quality + ')', CONFIG.width/2 - 180, y);
+            ctx.fillText('Lv.' + mount.unlockLevel + ' 速+' + Math.floor(mount.speedBonus * 100) + '%', CONFIG.width/2, y);
+            y += 20;
+        });
+        
+        ctx.fillStyle = '#fff';
+        ctx.font = '12px Microsoft YaHei';
+        ctx.textAlign = 'center';
+        ctx.fillText('按数字键1-4装备坐骑 | 按X下骑 | 按K关闭', CONFIG.width/2, 370);
+    }
+    
+    // v1.4.0 符文界面
+    if (game.runeOpen) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+        ctx.fillRect(CONFIG.width/2 - 200, 50, 400, 350);
+        ctx.strokeStyle = '#0088ff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(CONFIG.width/2 - 200, 50, 400, 350);
+        
+        ctx.fillStyle = '#0088ff';
+        ctx.font = 'bold 24px Microsoft YaHei';
+        ctx.textAlign = 'center';
+        ctx.fillText('🔮 符文系统', CONFIG.width/2, 85);
+        
+        // 符文槽
+        ctx.fillStyle = '#fff';
+        ctx.font = '14px Microsoft YaHei';
+        ctx.textAlign = 'left';
+        ctx.fillText('符文槽:', CONFIG.width/2 - 180, 120);
+        
+        let slotX = CONFIG.width/2 - 180;
+        game.equippedRunes.forEach((rune, index) => {
+            if (rune) {
+                const runeData = RUNES[rune.name];
+                ctx.fillStyle = RUNE_QUALITY_COLORS[runeData.quality];
+                ctx.fillRect(slotX, 130, 50, 20);
+                ctx.fillStyle = '#000';
+                ctx.font = '10px Microsoft YaHei';
+                ctx.fillText(runeData.icon + rune.name.substring(0, 3), slotX + 2, 144);
+            } else {
+                ctx.fillStyle = '#333';
+                ctx.strokeStyle = '#555';
+                ctx.strokeRect(slotX, 130, 50, 20);
+                ctx.fillStyle = '#555';
+                ctx.font = '10px Microsoft YaHei';
+                ctx.fillText('空槽', slotX + 10, 144);
+            }
+            slotX += 55;
+        });
+        
+        // 符文背包
+        ctx.fillStyle = '#ffd700';
+        ctx.font = 'bold 14px Microsoft YaHei';
+        ctx.textAlign = 'center';
+        ctx.fillText('符文背包 (击杀BOSS获得)', CONFIG.width/2, 175);
+        
+        let runeY = 200;
+        if (player.runeInventory.length === 0) {
+            ctx.fillStyle = '#666';
+            ctx.font = '12px Microsoft YaHei';
+            ctx.fillText('暂无符文', CONFIG.width/2, runeY);
+        } else {
+            player.runeInventory.forEach((rune, index) => {
+                const runeData = RUNES[rune.name];
+                ctx.fillStyle = RUNE_QUALITY_COLORS[runeData.quality];
+                ctx.font = '11px Microsoft YaHei';
+                ctx.textAlign = 'left';
+                ctx.fillText((index + 1) + '. ' + runeData.icon + rune.name + ' +' + Math.floor(runeData.statValue * 100) + '%', CONFIG.width/2 - 180, runeY);
+                runeY += 18;
+            });
+        }
+        
+        ctx.fillStyle = '#fff';
+        ctx.font = '12px Microsoft YaHei';
+        ctx.textAlign = 'center';
+        ctx.fillText('按数字键1-6装备符文到槽位 | 按X卸下符文 | 按R关闭', CONFIG.width/2, 370);
     }
     
     // 游戏结束
@@ -1853,6 +2342,55 @@ function draw() {
     ctx.restore();
 }
 
+// ===== v1.4.0 连携系统：检查是否触发连携技 =====
+function checkComboSkill() {
+    const combo = game.comboCount;
+    let comboSkill = null;
+    
+    if (combo >= 20) comboSkill = COMBO_SKILLS[20];
+    else if (combo >= 10) comboSkill = COMBO_SKILLS[10];
+    else if (combo >= 5) comboSkill = COMBO_SKILLS[5];
+    
+    if (comboSkill) {
+        game.comboSkillActive = true;
+        game.comboSkillTimer = 1.0;
+        
+        // 对范围内所有敌人造成额外伤害
+        game.enemies.forEach(enemy => {
+            if (enemy.alive && Math.abs(enemy.x - player.x) < 300) {
+                const extraDamage = player.attack * comboSkill.damageMult;
+                enemy.takeDamage(extraDamage);
+                createFloatingText(enemy.x, enemy.y - 50, comboSkill.text, comboSkill.color);
+            }
+        });
+        
+        // 屏幕特效
+        game.screenShake = 0.3;
+        game.screenShakeIntensity = 5;
+    }
+}
+
+// ===== v1.4.0 符文系统：尝试掉落符文 =====
+function tryDropRune(enemy) {
+    const runeKeys = Object.keys(RUNES);
+    // BOSS必掉传说/稀有符文，普通怪掉普通符文
+    const isBoss = enemy.isBoss;
+    
+    let runeName;
+    if (isBoss) {
+        const bossRunes = ['暴击符文', '生命符文', '神圣符文'];
+        runeName = bossRunes[Math.floor(Math.random() * bossRunes.length)];
+    } else {
+        runeName = runeKeys[Math.floor(Math.random() * 3)]; // 前3个是普通符文
+    }
+    
+    const runeData = RUNES[runeName];
+    player.runeInventory.push({ name: runeName, icon: runeData.icon, quality: runeData.quality, stat: runeData.stat, statValue: runeData.statValue });
+    
+    createFloatingText(enemy.x, enemy.y - 60, '符文!' + runeData.icon + runeName, RUNE_QUALITY_COLORS[runeData.quality]);
+    createParticle(enemy.x, enemy.y - 30, RUNE_QUALITY_COLORS[runeData.quality], 15);
+}
+
 function gameLoop(timestamp) {
     const dt = Math.min((timestamp - game.lastTime) / 1000, 0.1);
     game.lastTime = timestamp;
@@ -2020,6 +2558,108 @@ document.addEventListener('keydown', function(e) {
             player.equipPet(0);
         } else {
             createFloatingText(player.x, player.y - 80, '没有灵宠', '#888');
+        }
+    }
+    
+    // v1.4.0 宗门系统 J
+    if (e.code === 'KeyJ' || e.key === 'j' || e.key === 'J') {
+        if (player.level < 20) {
+            createFloatingText(player.x, player.y - 80, '20级后才能加入宗门', '#ff8800');
+        } else {
+            game.sectionOpen = !game.sectionOpen;
+            if (game.sectionOpen) {
+                game.companionOpen = false;
+                game.alchemyOpen = false;
+                game.mountOpen = false;
+                game.runeOpen = false;
+                createFloatingText(player.x, player.y - 80, '宗门界面已打开', '#ffd700');
+            } else {
+                createFloatingText(player.x, player.y - 80, '宗门界面已关闭', '#aaaaaa');
+            }
+        }
+    }
+    
+    // v1.4.0 坐骑系统 K
+    if (e.code === 'KeyK' || e.key === 'k' || e.key === 'K') {
+        if (player.level < 25) {
+            createFloatingText(player.x, player.y - 80, '25级后才能解锁坐骑', '#ff8800');
+        } else {
+            game.mountOpen = !game.mountOpen;
+            if (game.mountOpen) {
+                game.companionOpen = false;
+                game.alchemyOpen = false;
+                game.sectionOpen = false;
+                game.runeOpen = false;
+                createFloatingText(player.x, player.y - 80, '坐骑界面已打开', '#00ff00');
+            } else {
+                createFloatingText(player.x, player.y - 80, '坐骑界面已关闭', '#aaaaaa');
+            }
+        }
+    }
+    
+    // v1.4.0 符文系统 R
+    if (e.code === 'KeyR' || e.key === 'r' || e.key === 'R') {
+        game.runeOpen = !game.runeOpen;
+        if (game.runeOpen) {
+            game.companionOpen = false;
+            game.alchemyOpen = false;
+            game.sectionOpen = false;
+            game.mountOpen = false;
+            createFloatingText(player.x, player.y - 80, '符文界面已打开', '#0088ff');
+        } else {
+            createFloatingText(player.x, player.y - 80, '符文界面已关闭', '#aaaaaa');
+        }
+    }
+    
+    // v1.4.0 宗门界面操作
+    if (game.sectionOpen) {
+        if (e.code === 'Digit1' || e.key === '1') {
+            player.joinSection('青云宗');
+        } else if (e.code === 'Digit2' || e.key === '2') {
+            player.joinSection('玄冰宫');
+        } else if (e.code === 'Digit3' || e.key === '3') {
+            player.joinSection('天机阁');
+        } else if (e.code === 'Digit4' || e.key === '4') {
+            player.joinSection('万兽山');
+        } else if (e.code === 'KeyX' || e.key === 'x' || e.key === 'X') {
+            player.leaveSection();
+        }
+    }
+    
+    // v1.4.0 坐骑界面操作
+    if (game.mountOpen) {
+        if (e.code === 'Digit1' || e.key === '1') {
+            player.equipMount('灵鹿');
+        } else if (e.code === 'Digit2' || e.key === '2') {
+            player.equipMount('云鹤');
+        } else if (e.code === 'Digit3' || e.key === '3') {
+            player.equipMount('麒麟');
+        } else if (e.code === 'Digit4' || e.key === '4') {
+            player.equipMount('鲲鹏');
+        } else if (e.code === 'KeyX' || e.key === 'x' || e.key === 'X') {
+            player.unequipMount();
+        }
+    }
+    
+    // v1.4.0 符文界面操作
+    if (game.runeOpen) {
+        // 数字键1-6装备符文到槽位
+        const runeKeys = Object.keys(RUNES);
+        for (let i = 0; i < 6 && i < runeKeys.length; i++) {
+            if ((e.code === 'Digit' + (i + 1) || e.key === String(i + 1))) {
+                player.equipRune(runeKeys[i], i);
+                break;
+            }
+        }
+        // X键卸下符文
+        if (e.code === 'KeyX' || e.key === 'x' || e.key === 'X') {
+            // 默认卸下第一个有符文的槽位
+            for (let i = 0; i < game.equippedRunes.length; i++) {
+                if (game.equippedRunes[i]) {
+                    player.unequipRune(i);
+                    break;
+                }
+            }
         }
     }
 });
