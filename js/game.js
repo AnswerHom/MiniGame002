@@ -1511,6 +1511,13 @@ function startGame() {
 
 // 键盘事件
 document.addEventListener('keydown', function(e) {
+    // 游戏结束时按空格重新开始
+    if (e.code === 'Space' && game.gameOver) {
+        e.preventDefault();
+        location.reload();
+        return;
+    }
+    
     if (e.code === 'Space') {
         e.preventDefault();
         // 优先释放已解锁且不在冷却的技能
@@ -1773,6 +1780,13 @@ document.addEventListener('keydown', function(e) {
                 }
             }
         }
+    }
+});
+
+// 点击 canvas 开始/重新开始游戏
+canvas.addEventListener('click', function() {
+    if (game.gameOver) {
+        location.reload();
     }
 });
 
