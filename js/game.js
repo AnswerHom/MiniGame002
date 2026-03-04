@@ -1,9 +1,5 @@
 // MiniGame002 - 游戏主逻辑 v1.11.0
 // 代码结构重构：配置数据移至 config.js
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-canvas.width = CONFIG.width;
-canvas.height = CONFIG.height;
 
 const game = {
     running: true, gameOver: false, cameraX: 0, lastTime: 0,
