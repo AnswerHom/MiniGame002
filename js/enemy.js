@@ -62,6 +62,9 @@ class Enemy {
         
         const dist = player.x - this.x;
         
+        // 怪物朝向玩家（玩家在右边朝右，玩家在左边朝左）
+        this.direction = dist > 0 ? 1 : -1;
+        
         // 怪物进入自己的攻击距离后停止并攻击玩家
         if (Math.abs(dist) < this.attackDistance && this.attackCooldown <= 0) {
             this.attackPlayer();
