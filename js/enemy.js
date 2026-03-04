@@ -13,12 +13,6 @@ const ENEMY_TYPES = {
 };
 
 // v1.0.2: 境界颜色区分
-const REALM_COLORS = {
-    练气: '#718096',
-    筑基: '#48bb78',
-    金丹: '#4299e1',
-    元婴: '#9f7aea'
-};
 
 class Enemy {
     constructor(x, type, realm = '练气') {
