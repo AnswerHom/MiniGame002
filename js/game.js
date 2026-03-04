@@ -1,4 +1,5 @@
-// MiniGame002 - 游戏主逻辑 v1.8.0
+// MiniGame002 - 游戏主逻辑 v1.9.0
+// v1.9.0: 坐骑可视化 + 符文扩展 + 背包系统(开发中)
 // v1.8.0: 技能系统完整实现 + 战斗体验优化补全
 // v1.7.0: 技能系统雏形 + 战斗爽感提升
 // v1.6.1: 战斗体验优化 - 自动前进/自动停下战斗/自动继续推进
@@ -325,12 +326,18 @@ const MOUNT_QUALITY_COLORS = {
 
 // ===== v1.4.0 符文系统配置 =====
 const RUNES = {
+    // v1.4.0 原有符文
     '力量符文': { name: '力量符文', quality: '普通', icon: '💪', stat: 'attack', statValue: 0.05 },
     '坚固符文': { name: '坚固符文', quality: '普通', icon: '🛡️', stat: 'defense', statValue: 0.05 },
     '敏捷符文': { name: '敏捷符文', quality: '普通', icon: '⚡', stat: 'speed', statValue: 0.05 },
     '暴击符文': { name: '暴击符文', quality: '稀有', icon: '💥', stat: 'critRate', statValue: 0.03 },
     '生命符文': { name: '生命符文', quality: '稀有', icon: '❤️', stat: 'maxHp', statValue: 0.10 },
-    '神圣符文': { name: '神圣符文', quality: '传说', icon: '✨', stat: 'skillDamage', statValue: 0.15 }
+    '神圣符文': { name: '神圣符文', quality: '传说', icon: '✨', stat: 'skillDamage', statValue: 0.15 },
+    // v1.9.0 新增符文
+    '防御符文': { name: '防御符文', quality: '普通', icon: '🛡️', stat: 'defense', statValue: 0.05 },
+    '速度符文': { name: '速度符文', quality: '普通', icon: '🏃', stat: 'speed', statValue: 0.05 },
+    '吸血符文': { name: '吸血符文', quality: '稀有', icon: '🩸', stat: 'lifesteal', statValue: 0.05 },
+    '免伤符文': { name: '免伤符文', quality: '稀有', icon: '🛡️', stat: 'damageReduction', statValue: 0.08 }
 };
 
 const RUNE_QUALITY_COLORS = {
@@ -1275,6 +1282,30 @@ const player = {
     draw() {
         const screenX = this.x - CONFIG.cameraOffset;
         const w = WEAPONS[this.weapon];
+        
+        // v1.9.0 坐骑可视化 - 绘制坐骑光环
+        if (this.mount) {
+            const mountData = MOUNTS[this.mount.name];
+            const qualityColor = MOUNT_QUALITY_COLORS[mountData.quality];
+            const bounce = Math.sin(Date.now() * 0.005) * 3;
+            const pulse = 0.3 + Math.sin(Date.now() * 0.003) * 0.2;
+            
+            // 绘制坐骑光环
+            ctx.save();
+            ctx.globalAlpha = pulse;
+            ctx.strokeStyle = qualityColor;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.ellipse(screenX + this.width/2, this.y - 5, 25, 8, 0, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // 绘制坐骑图标（在角色脚下）
+            ctx.globalAlpha = 1;
+            ctx.font = '20px Microsoft YaHei';
+            ctx.textAlign = 'center';
+            ctx.fillText(mountData.icon, screenX + this.width/2, this.y - 10 + bounce);
+            ctx.restore();
+        }
         
         if (this.skills.护体神光.active) {
             ctx.save(); ctx.globalAlpha = 0.3 + Math.sin(Date.now() * 0.01) * 0.2;
