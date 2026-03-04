@@ -139,14 +139,36 @@ function getScene(distance) {
     return SCENES[Math.floor(distance / 1000) % 3];
 }
 
+// v1.5.0 战斗状态机
+const BATTLE_STATES = {
+    ADVANCE: 'advance',    // 推进状态：主角自动前进
+    COMBAT: 'combat',      // 战斗状态：与怪物战斗
+    VICTORY: 'victory'     // 战斗胜利：继续推进
+};
+
 const game = {
     running: true, gameOver: false, cameraX: 0, lastTime: 0,
     enemies: [], expOrbs: [], particles: [], projectiles: [],
-    spawnTimer: 0, spawnInterval: 2000, groundY: CONFIG.groundY, distance: 0,
+    spawnTimer: 0, spawnInterval: 5000, groundY: CONFIG.groundY, distance: 0,
     clouds: [], stars: [], grass: [], killCount: 0, comboCount: 0, comboTimer: 0,
     comboRewards: { 3: 10, 5: 25, 10: 50 },
     screenShake: 0, screenShakeIntensity: 0,
     slowMotion: 0,
+    // v1.5.0 战斗状态机
+    battleState: BATTLE_STATES.ADVANCE,
+    previousBattleState: BATTLE_STATES.ADVANCE,
+    enemyDetectionRange: 250,  // 遇怪检测范围
+    battleTransitionTimer: 0,  // 战斗状态切换过渡计时器
+    isTransitioning: false,    // 是否在过渡中
+    battleSceneTransition: 0,  // 场景切换过渡动画
+    // v1.5.0 战斗节奏
+    attackInterval: 1.2,       // 攻击间隔1.2秒
+    monsterWaveCount: 3,       // 每波3只
+    monsterWaveInterval: 5,   // 波次间隔5秒
+    waveTimer: 0,
+    monstersThisWave: 0,
+    battleDuration: 0,         // 战斗持续时间
+    maxBattleDuration: 180,   // 最长3分钟
     // v1.1.0 新增
     equipment: { 武器: null, 防具: null, 饰品: null },
     dungeon: null, dungeonTimer: 0, dungeonEnemiesRemaining: 0,
@@ -989,8 +1011,12 @@ const player = {
     
     update(dt) {
         let currentSpeed = this.speed;
-        if (this.slowed) { currentSpeed *= 0.7; this.slowTimer -= dt; if (this.slowTimer <= 0) this.slowed = false; }
-        this.x += currentSpeed * dt;
+        
+        // v1.5.0 战斗状态机 - 推进状态下才能移动
+        if (game.battleState === BATTLE_STATES.ADVANCE && !game.isTransitioning) {
+            if (this.slowed) { currentSpeed *= 0.7; this.slowTimer -= dt; if (this.slowTimer <= 0) this.slowed = false; }
+            this.x += currentSpeed * dt;
+        }
         game.distance = Math.floor((this.x - 100) / 10);
         CONFIG.cameraOffset = this.x - 150;
         if (this.isDodging) { this.dodgeTimer -= dt; if (this.dodgeTimer <= 0) this.isDodging = false; }
@@ -1277,19 +1303,117 @@ function spawnEnemy() {
     // 副本中不生成普通怪物
     if (game.dungeon) return;
     
-    const x = player.x + 400 + Math.random() * 200;
+    // v1.5.0 战斗场景分离 - 在战斗场景中怪物从右侧涌入
+    let spawnX;
+    if (game.battleState === BATTLE_STATES.COMBAT) {
+        // 战斗场景：怪物从屏幕右侧涌入
+        spawnX = player.x + CONFIG.width - 50 + Math.random() * 100;
+    } else {
+        // 推进场景：前方生成怪物
+        spawnX = player.x + 400 + Math.random() * 200;
+    }
+    
     const availableTypes = [];
     if (player.level >= 1) availableTypes.push('阴魂');
     if (player.level >= 5) availableTypes.push('妖狼');
     if (player.level >= 10) availableTypes.push('毒蛛');
     if (player.level >= 15) availableTypes.push('僵尸');
     const type = availableTypes[Math.floor(Math.random() * availableTypes.length)];
-    game.enemies.push(new Enemy(x, type));
+    game.enemies.push(new Enemy(spawnX, type));
     
     // 每1000米生成副本入口
     const newDistance = Math.floor((player.x - 100) / 10);
     if (newDistance > 0 && newDistance % 1000 === 0 && !game.dungeonEntrance) {
         game.dungeonEntrance = { x: player.x + 500, unlocked: false };
+    }
+}
+
+// v1.5.0 战斗状态机逻辑
+function updateBattleState(dt) {
+    // 副本中不进行状态机切换
+    if (game.dungeon) return;
+    
+    // 过渡动画中不更新状态
+    if (game.isTransitioning) {
+        game.battleTransitionTimer -= dt;
+        if (game.battleTransitionTimer <= 0) {
+            game.isTransitioning = false;
+        }
+        return;
+    }
+    
+    // 检测前方是否有怪物
+    const enemyInRange = game.enemies.find(enemy => 
+        enemy.alive && enemy.x > player.x && enemy.x < player.x + game.enemyDetectionRange
+    );
+    
+    // 状态切换逻辑
+    if (game.battleState === BATTLE_STATES.ADVANCE) {
+        // 推进状态 - 检测到怪物则进入战斗
+        if (enemyInRange) {
+            game.battleState = BATTLE_STATES.COMBAT;
+            game.previousBattleState = BATTLE_STATES.ADVANCE;
+            game.isTransitioning = true;
+            game.battleTransitionTimer = 0.5;  // 0.5秒过渡
+            game.battleSceneTransition = 1;    // 开始场景切换动画
+            
+            // v1.5.0 初始化战斗波次
+            game.battleDuration = 0;
+            game.monstersThisWave = game.monsterWaveCount;
+            
+            createFloatingText(player.x, player.y - 100, '⚔️ 进入战斗! ⚔️', '#ff6600');
+            createParticle(player.x + player.width/2, player.y - player.height/2, '#ff6600', 20);
+            game.screenShake = 0.3;
+            game.screenShakeIntensity = 8;
+        }
+    } else if (game.battleState === BATTLE_STATES.COMBAT) {
+        // 战斗状态
+        game.battleDuration += dt;
+        
+        // v1.5.0 战斗节奏 - 波次刷新
+        game.waveTimer += dt;
+        if (game.waveTimer >= game.monsterWaveInterval && game.monstersThisWave > 0) {
+            game.waveTimer = 0;
+            // 刷新怪物
+            for (let i = 0; i < Math.min(game.monstersThisWave, game.monsterWaveCount); i++) {
+                setTimeout(() => spawnEnemy(), i * 500);
+            }
+            game.monstersThisWave = game.monsterWaveCount;
+        }
+        
+        // 怪物全部击杀或超时则返回推进状态
+        const aliveEnemies = game.enemies.filter(e => e.alive);
+        
+        if (aliveEnemies.length === 0 && game.battleDuration > 3) {
+            // 战斗胜利
+            game.battleState = BATTLE_STATES.VICTORY;
+            game.isTransitioning = true;
+            game.battleTransitionTimer = 1.0;
+            
+            createFloatingText(player.x, player.y - 100, '🎉 战斗胜利! 🎉', '#ffd700');
+            createParticle(player.x + player.width/2, player.y - player.height/2, '#ffd700', 30);
+            game.screenShake = 0.2;
+        } else if (game.battleDuration >= game.maxBattleDuration) {
+            // 战斗超时，强制结束
+            game.battleState = BATTLE_STATES.VICTORY;
+            game.isTransitioning = true;
+            game.battleTransitionTimer = 1.0;
+            
+            createFloatingText(player.x, player.y - 100, '⏰ 战斗超时!', '#ff8800');
+        }
+    } else if (game.battleState === BATTLE_STATES.VICTORY) {
+        // 胜利状态 - 短暂庆祝后返回推进
+        game.battleState = BATTLE_STATES.ADVANCE;
+        game.previousBattleState = BATTLE_STATES.VICTORY;
+        game.isTransitioning = true;
+        game.battleTransitionTimer = 0.5;
+        game.battleSceneTransition = 0;
+    }
+    
+    // v1.5.0 场景切换动画衰减
+    if (game.battleSceneTransition > 0 && game.battleState === BATTLE_STATES.ADVANCE) {
+        game.battleSceneTransition -= dt * 2;
+        if (game.battleSceneTransition < 0) game.battleSceneTransition = 0;
     }
 }
 
@@ -1464,6 +1588,9 @@ function completeDungeon() {
 function update(dt) {
     if (game.gameOver) return;
     
+    // v1.5.0 战斗状态机更新
+    updateBattleState(dt);
+    
     // 慢动作处理
     let actualDt = dt;
     if (game.slowMotion > 0) {
@@ -1479,8 +1606,14 @@ function update(dt) {
     player.update(actualDt);
     if (CONFIG.cameraOffset < 0) CONFIG.cameraOffset = 0;
     if (game.comboTimer > 0) { game.comboTimer -= actualDt; if (game.comboTimer <= 0) game.comboCount = 0; }
-    game.spawnTimer += actualDt * 1000;
-    if (game.spawnTimer >= game.spawnInterval) { spawnEnemy(); game.spawnTimer = 0; }
+    // v1.5.0 战斗节奏 - 推进状态下才生成怪物
+    if (game.battleState === BATTLE_STATES.ADVANCE || game.battleState === BATTLE_STATES.COMBAT) {
+        game.spawnTimer += actualDt * 1000;
+        if (game.spawnTimer >= game.spawnInterval) { 
+            spawnEnemy(); 
+            game.spawnTimer = 0; 
+        }
+    }
     game.enemies.forEach(enemy => enemy.update(actualDt));
     game.enemies.forEach(enemy => { if (!enemy.alive) return; const dist = Math.abs((player.x + player.width/2) - (enemy.x + enemy.width/2)); if (dist < player.attackRange) player.attackTarget(enemy); });
     game.enemies = game.enemies.filter(e => e.alive);
@@ -1568,9 +1701,22 @@ function update(dt) {
 
 function drawBackground() {
     const scene = getScene(game.distance);
+    
+    // v1.5.0 战斗场景分离 - 战斗状态时背景变暗红
+    let bgColors = scene.bgColor;
+    if (game.battleState === BATTLE_STATES.COMBAT) {
+        bgColors = ['#2a0a0a', '#3d1a1a', '#2a1515'];
+    }
+    
     const gradient = ctx.createLinearGradient(0, 0, 0, CONFIG.height);
-    gradient.addColorStop(0, scene.bgColor[0]); gradient.addColorStop(0.5, scene.bgColor[1]); gradient.addColorStop(1, scene.bgColor[2]);
+    gradient.addColorStop(0, bgColors[0]); gradient.addColorStop(0.5, bgColors[1]); gradient.addColorStop(1, bgColors[2]);
     ctx.fillStyle = gradient; ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
+    
+    // v1.5.0 战斗场景切换过渡效果
+    if (game.battleSceneTransition > 0) {
+        ctx.fillStyle = `rgba(255, 100, 0, ${game.battleSceneTransition * 0.3})`;
+        ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
+    }
     
     if (scene.name === '山野之路') {
         game.stars.forEach(star => { ctx.globalAlpha = 0.3 + Math.sin(star.twinkle) * 0.3; ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2); ctx.fill(); });
@@ -1640,6 +1786,23 @@ function drawUI() {
     // 距离
     ctx.fillStyle = '#00ffff'; ctx.font = '11px Microsoft YaHei';
     ctx.fillText('距离: ' + game.distance + 'm', CONFIG.width - 20, 42);
+    
+    // v1.5.0 战斗状态显示
+    if (game.battleState === BATTLE_STATES.COMBAT) {
+        ctx.fillStyle = '#ff6600'; ctx.font = 'bold 12px Microsoft YaHei'; ctx.textAlign = 'right';
+        ctx.fillText('⚔️ 战斗中', CONFIG.width - 20, 56);
+        
+        // 战斗时长
+        const battleTime = Math.floor(game.battleDuration);
+        ctx.fillStyle = '#ff8800'; ctx.font = '10px Microsoft YaHei';
+        ctx.fillText('⏱️ ' + battleTime + 's', CONFIG.width - 20, 68);
+    } else if (game.battleState === BATTLE_STATES.VICTORY) {
+        ctx.fillStyle = '#ffd700'; ctx.font = 'bold 12px Microsoft YaHei'; ctx.textAlign = 'right';
+        ctx.fillText('🎉 胜利', CONFIG.width - 20, 56);
+    } else if (game.previousBattleState === BATTLE_STATES.COMBAT && game.isTransitioning) {
+        ctx.fillStyle = '#00ff00'; ctx.font = 'bold 11px Microsoft YaHei'; ctx.textAlign = 'right';
+        ctx.fillText('→ 推进中', CONFIG.width - 20, 56);
+    }
     
     // 击杀数
     ctx.fillStyle = '#ff6666'; ctx.font = '11px Microsoft YaHei';

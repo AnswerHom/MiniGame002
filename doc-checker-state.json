@@ -1,7 +1,7 @@
 {
-  "lastCheckTime": 1738474200,
-  "lastDocVersion": "v1.1.0",
-  "lastDocPath": "/root/.openclaw/workspace-client/work/MiniGame002/doc/游戏设计文档_v1.1.0.md",
+  "lastCheckTime": 1738475040,
+  "lastDocVersion": "v1.5.0",
+  "lastDocPath": "/root/.openclaw/workspace-client/work/MiniGame002/doc/游戏设计文档_v1.5.0.md",
   "implementedFeatures": [
     "技能系统实现（3个技能）",
     "技能UI显示",
@@ -19,6 +19,10 @@
     "境界突破机制",
     "副本入口生成（每1000米）",
     "4个副本实现（阴魂洞、妖狼谷、万蛛巢、僵尸陵）",
-    "副本奖励发放"
+    "副本奖励发放",
+    "v1.5.0 战斗状态机（推进/战斗/胜利）",
+    "v1.5.0 战斗场景分离（推进场景/战斗场景背景变化）",
+    "v1.5.0 战斗节奏优化（攻击间隔1.2秒，波次3只，间隔5秒）",
+    "v1.5.0 UI界面显示战斗状态和时长"
   ]
 }
