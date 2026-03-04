@@ -45,11 +45,13 @@ js/
 ## 拆分进度
 
 ### ✅ 已完成
-- [x] **config.js** - 基础配置分离 (P0)
-- [x] **systems.js** - 系统配置分离 (P0)
-- [x] **player.js** - 玩家模块分离 (P1)
-- [x] **enemy.js** - 怪物模块分离 (P1)
-- [x] **ui.js** - UI模块分离 (P1)
+- [x] **config.js** - 基础配置分离
+- [x] **player.js** - 玩家模块分离
+- [x] **enemy.js** - 怪物模块分离
+
+### ⏳ 待处理
+- [ ] **ui.js** - UI模块（可选拆分）
+- [ ] **systems.js** - 系统配置（WEAPONS等，可选拆分）
 
 ### ⏳ 待处理
 - [ ] **main.js** - 入口和循环
