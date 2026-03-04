@@ -19,14 +19,21 @@ function update(dt) {
     // 怪物更新
     game.enemies.forEach(enemy => enemy.update(dt));
     
-    // 玩家自动攻击
+    // 玩家自动攻击：如果攻击范围内有敌人就攻击，不再移动
+    let hasEnemyInRange = false;
     game.enemies.forEach(enemy => {
         if (!enemy.alive) return;
         const dist = Math.abs(player.x - enemy.x);
         if (dist < player.attackRange) {
             player.attackTarget(enemy);
+            hasEnemyInRange = true;
         }
     });
+    
+    // 如果攻击范围内没有敌人，玩家继续移动
+    if (!hasEnemyInRange) {
+        player.x += player.speed * dt;
+    }
     
     // 清理死亡怪物
     game.enemies = game.enemies.filter(e => e.alive);
