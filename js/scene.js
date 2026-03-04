@@ -13,8 +13,8 @@ let sceneState = {
 };
 
 function getScene(distance) {
-    // v1.2.5: 每8000像素(800米)切换一次场景
-    return SCENES[Math.floor(distance / 800) % 3];
+    // v1.2.6: 每2000像素(200米)切换一次场景（原为8000像素/800米）
+    return SCENES[Math.floor(distance / 2000) % 3];
 }
 
 const SKY_THEMES = {

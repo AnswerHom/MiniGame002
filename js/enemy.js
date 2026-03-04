@@ -47,6 +47,9 @@ class Enemy {
         this.isAttacking = false;
         this.attackAnimTime = 0;
         
+        // v1.2.6: 方向属性初始化，防止draw()在update()之前调用时direction为undefined
+        this.direction = 1;
+        
         // v1.2.4: 境界颜色 - 练气灰色 | 筑基绿色 | 金丹蓝色
         this.realmColor = ENEMY_REALM_COLORS[realm] || ENEMY_REALM_COLORS['练气'];
     }
@@ -278,7 +281,16 @@ class Enemy {
 function spawnEnemy() {
     const types = Object.keys(ENEMY_TYPES);
     const type = types[Math.floor(Math.random() * types.length)];
-    // v1.2.5: 怪物从屏幕右侧外生成(x > 屏幕宽度)
-    const spawnX = player.x + CONFIG.width + Math.random() * 200;
+    
+    // v1.2.6: 开局时在玩家附近生成怪物，后续怪物从屏幕右侧生成
+    let spawnX;
+    if (game.enemies.length === 0) {
+        // 第一个怪物在玩家前方100-300像素生成
+        spawnX = player.x + 100 + Math.random() * 200;
+    } else {
+        // 后续怪物从屏幕右侧外生成
+        spawnX = player.x + CONFIG.width + Math.random() * 200;
+    }
+    
     game.enemies.push(new Enemy(spawnX, type));
 }
