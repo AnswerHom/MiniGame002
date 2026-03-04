@@ -1,3 +1,72 @@
+// ===== v1.0.4 背景系统配置 =====
+// 三层背景结构：远景(0.2x)、中景(0.5x)、近景(1.0x)
+
+// 远景配置
+const BACKGROUND_LAYERS = {
+    far: { speed: 0.2, name: '远景' },
+    mid: { speed: 0.5, name: '中景' },
+    near: { speed: 1.0, name: '近景' }
+};
+
+// 天空渐变配置
+const SKY_THEMES = {
+    day: { colors: ['#87ceeb', '#b8e0f0', '#e0f7fa'], name: '白天' },
+    dusk: { colors: ['#ff7e5f', '#feb47b', '#ffcf9f'], name: '黄昏' },
+    night: { colors: ['#0c1445', '#1a2a5c', '#2a3a6c'], name: '夜晚' }
+};
+
+// 云朵配置
+const CLOUD_CONFIG = {
+    minSize: 80,
+    maxSize: 150,
+    minInterval: 5000,
+    maxInterval: 10000,
+    speed: 30,
+    opacity: 0.6,
+    color: 'rgba(255,255,255,0.6)'
+};
+
+// 星星配置
+const STAR_CONFIG = {
+    count: 25,
+    minSize: 2,
+    maxSize: 4,
+    colors: ['#ffffff', '#fffacd', '#e0ffff'],
+    twinkleSpeed: 2
+};
+
+// 地面细节配置
+const GROUND_DETAIL_CONFIG = {
+    grassStripeHeight: 20,
+    grassColors: ['#90cdf4', '#68d391'],
+    flowerColors: ['#ffb6c1', '#ffd700', '#ff69b4'],
+    flowerSize: 6,
+    stoneColors: ['#696969', '#808080', '#a9a9a9'],
+    stoneSize: { min: 10, max: 25 }
+};
+
+// 场景远景元素
+const SCENE_BACKGROUNDS = {
+    '山野之路': {
+        sky: 'day',
+        mountains: true,
+        birds: true,
+        trees: true
+    },
+    '幽林深处': {
+        sky: 'dusk',
+        mountains: false,
+        birds: false,
+        trees: true
+    },
+    '古墓遗迹': {
+        sky: 'night',
+        mountains: false,
+        birds: false,
+        trees: false
+    }
+};
+
 // ===== 配置数据 =====
 // 包含：canvas初始化、基础配置、场景配置
 
