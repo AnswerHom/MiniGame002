@@ -19,7 +19,7 @@ function update(dt) {
     // 怪物更新
     game.enemies.forEach(enemy => enemy.update(dt));
     
-    // 玩家自动攻击：如果攻击范围内有敌人就攻击，不再移动
+    // 玩家自动攻击：如果攻击范围内有敌人就攻击，否则移动
     let hasEnemyInRange = false;
     game.enemies.forEach(enemy => {
         if (!enemy.alive) return;
@@ -30,10 +30,8 @@ function update(dt) {
         }
     });
     
-    // 如果攻击范围内没有敌人，玩家继续移动
-    if (!hasEnemyInRange) {
-        player.x += player.speed * dt;
-    }
+    // 玩家根据是否有敌人在攻击范围内决定是否移动
+    player.isMoving = !hasEnemyInRange;
     
     // 清理死亡怪物
     game.enemies = game.enemies.filter(e => e.alive);
