@@ -1,58 +1,159 @@
-const game = {
-    running: true, gameOver: false, cameraX: 0, lastTime: 0,
-    enemies: [], expOrbs: [], particles: [], projectiles: [],
-    spawnTimer: 0, spawnInterval: 5000, groundY: CONFIG.groundY, distance: 0,
-    clouds: [], stars: [], grass: [], killCount: 0, comboCount: 0, comboTimer: 0,
-    comboRewards: { 3: 10, 5: 25, 10: 50 },
-    screenShake: 0, screenShakeIntensity: 0,
-    slowMotion: 0,
-    // v1.5.0 战斗状态机
-    battleState: BATTLE_STATES.ADVANCE,
-    previousBattleState: BATTLE_STATES.ADVANCE,
-    enemyDetectionRange: 250,  // 遇怪检测范围
-    battleTransitionTimer: 0,  // 战斗状态切换过渡计时器
-    isTransitioning: false,    // 是否在过渡中
-    battleSceneTransition: 0,  // 场景切换过渡动画
-    // v1.5.0 战斗节奏
-    attackInterval: 1.2,       // 攻击间隔1.2秒
-    monsterWaveCount: 3,       // 每波3只
-    monsterWaveInterval: 5,   // 波次间隔5秒
-    waveTimer: 0,
-    monstersThisWave: 0,
-    battleDuration: 0,         // 战斗持续时间
-    maxBattleDuration: 180,   // 最长3分钟
-    // v1.1.0 新增
-    equipment: { 武器: null, 防具: null, 饰品: null },
-    dungeon: null, dungeonTimer: 0, dungeonEnemiesRemaining: 0,
-    dungeonEntrance: null,
-    realmBreakthrough: false, guardian: null, guardianDefeated: false,
-    // v1.2.0 炼丹系统
-    herbs: { '止血草': 0, '灵气花': 0, '凝元果': 0, '千年灵芝': 0, '九天雪莲': 0 },
-    alchemyOpen: false, selectedRecipe: null,
-    // v1.2.0 灵宠系统
-    pets: [], activePet: null, petSkillTimer: 0,
-    wildPet: null, petCatchAttempt: 0,
-    // v1.2.0 药材采集
-    herbSpawns: [], herbSpawnTimer: 0,
-    // v1.3.0 仙侣系统
-    companionOpen: false, companion: null, companionSkillTimer: 0,
-    // v1.4.0 宗门系统
-    sectionOpen: false, section: null, sectionContrib: 0, sectionTasks: {},
-    // v1.4.0 坐骑系统
-    mountOpen: false, mount: null, mountLevel: 1, isMounted: false,
-    // v1.4.0 符文系统
-    runeOpen: false, runes: [], equippedRunes: [null, null, null, null, null, null],
-    // v1.4.0 连携系统
-    comboSkillActive: false, comboSkillTimer: 0,
-    // v1.7.0 技能系统
-    skillPoints: 0,  // 技能点
-    gold: 0,  // 金币
-    goldCoins: [],  // v1.8.0 金币列表
-    lootNotifications: [],  // 掉落提示
-    eliteMonsters: []  // 精英怪列表
-};
+// ===== 游戏主逻辑 =====
 
-// 兵器系统
-function playSound(type) {
-    AudioSystem.play(type);
+// 游戏初始化
+function initGame() {
+    // 初始化云朵
+    for (let i = 0; i < 10; i++) {
+        game.clouds.push({
+            x: Math.random() * CONFIG.width,
+            y: Math.random() * (CONFIG.groundY - 100),
+            width: 60 + Math.random() * 40,
+            speed: 10 + Math.random() * 20
+        });
+    }
+    // 初始化星星
+    for (let i = 0; i < 50; i++) {
+        game.stars.push({
+            x: Math.random() * CONFIG.width,
+            y: Math.random() * (CONFIG.groundY - 100),
+            size: 1 + Math.random() * 2,
+            twinkle: Math.random() * Math.PI * 2,
+            speed: 1 + Math.random() * 3
+        });
+    }
+    // 初始化草地
+    for (let i = 0; i < 30; i++) {
+        game.grass.push({
+            x: Math.random() * CONFIG.width,
+            sway: Math.random() * Math.PI * 2
+        });
+    }
 }
+
+// 更新游戏状态
+function update(dt) {
+    if (game.gameOver) return;
+    
+    // 屏幕震动衰减
+    if (game.screenShake > 0) {
+        game.screenShake -= dt;
+    }
+    
+    // 慢动作衰减
+    if (game.slowMotion > 0) {
+        game.slowMotion -= dt;
+    }
+    
+    const actualDt = game.slowMotion > 0 ? dt * 0.1 : dt;
+    
+    player.update(actualDt);
+    
+    if (CONFIG.cameraOffset < 0) CONFIG.cameraOffset = 0;
+    if (game.comboTimer > 0) { game.comboTimer -= actualDt; if (game.comboTimer <= 0) game.comboCount = 0; }
+    
+    // 生成怪物
+    const aliveEnemies = game.enemies.filter(e => e.alive);
+    if (aliveEnemies.length < 5) {
+        game.spawnTimer += actualDt * 1000;
+        if (game.spawnTimer >= game.spawnInterval) { 
+            spawnEnemy(); 
+            game.spawnTimer = 0; 
+        }
+    }
+    
+    game.enemies.forEach(enemy => enemy.update(actualDt));
+    game.enemies.forEach(enemy => { if (!enemy.alive) return; const dist = Math.abs((player.x + player.width/2) - (enemy.x + enemy.width/2)); if (dist < player.attackRange) player.attackTarget(enemy); });
+    game.enemies = game.enemies.filter(e => e.alive);
+    
+    game.expOrbs.forEach(orb => orb.update(actualDt)); game.expOrbs = game.expOrbs.filter(orb => !orb.collected);
+    game.goldCoins.forEach(coin => coin.update(actualDt)); game.goldCoins = game.goldCoins.filter(coin => !coin.collected);
+    game.particles.forEach(p => p.update(actualDt)); game.particles = game.particles.filter(p => p.life > 0);
+    game.projectiles.forEach(p => p.update(actualDt)); game.projectiles = game.projectiles.filter(p => p.alive);
+    game.clouds.forEach(cloud => { cloud.x += cloud.speed * actualDt; if (cloud.x > player.x + CONFIG.width) cloud.x = player.x - cloud.width; });
+    game.stars.forEach(star => star.twinkle += star.speed * actualDt);
+    game.grass.forEach(grass => grass.sway += actualDt * 2);
+    
+    updateBattleState(actualDt);
+    
+    // 自动存档
+    if (!game.autoSaveTimer) game.autoSaveTimer = 0;
+    game.autoSaveTimer += actualDt;
+    if (game.autoSaveTimer >= 30) { autoSave(); game.autoSaveTimer = 0; }
+    
+    // 玩家升级检测
+    if (player.exp >= player.requiredExp) {
+        player.levelUp();
+    }
+    
+    // 境界突破
+    if (player.realmBreakthroughPending && game.guardianDefeated) {
+        const realm = getRealm(player.level);
+        createFloatingText(player.x, player.y - 80, '突破成功! 境界:' + realm.name, '#ff00ff');
+        player.realmBreakthroughPending = false;
+        game.guardianDefeated = false;
+    }
+    
+    // 检查存档UI显示
+    if (game.showSaveUI) {
+        if (!game.saveUITimer) game.saveUITimer = 0;
+        game.saveUITimer += dt;
+        if (game.saveUITimer > 5) {
+            game.showSaveUI = false;
+            game.saveUITimer = 0;
+        }
+    }
+}
+
+// 绘制游戏画面
+function draw() {
+    // 屏幕震动效果
+    ctx.save();
+    if (game.screenShake > 0) {
+        const shakeX = (Math.random() - 0.5) * game.screenShakeIntensity;
+        const shakeY = (Math.random() - 0.5) * game.screenShakeIntensity;
+        ctx.translate(shakeX, shakeY);
+    }
+    
+    drawBackground();
+    
+    // 绘制经验球
+    game.expOrbs.forEach(orb => orb.draw());
+    // 绘制金币
+    game.goldCoins.forEach(coin => coin.draw());
+    // 绘制怪物
+    game.enemies.forEach(enemy => enemy.draw());
+    // 绘制弹道
+    game.projectiles.forEach(p => p.draw());
+    // 绘制玩家
+    player.draw();
+    // 绘制粒子
+    game.particles.forEach(p => p.draw());
+    
+    // 绘制UI
+    drawUI();
+    
+    ctx.restore();
+}
+
+// 游戏主循环
+function gameLoop(timestamp) {
+    const dt = Math.min((timestamp - game.lastTime) / 1000, 0.1);
+    game.lastTime = timestamp;
+    
+    update(dt);
+    draw();
+    
+    if (game.running) {
+        requestAnimationFrame(gameLoop);
+    }
+}
+
+// 开始游戏
+function startGame() {
+    initGame();
+    game.lastTime = performance.now();
+    requestAnimationFrame(gameLoop);
+}
+
+// 页面加载完成后开始游戏
+window.onload = startGame;
