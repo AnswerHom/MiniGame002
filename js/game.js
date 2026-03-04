@@ -1247,8 +1247,11 @@ const player = {
             }
         }
         
-        // v1.5.0 战斗状态机 - 推进状态下才能移动
-        if (game.battleState === BATTLE_STATES.ADVANCE && !game.isTransitioning) {
+        // v1.6.1 简化战斗逻辑：检测附近有怪物时停止前进并战斗
+        const nearbyEnemy = game.enemies.find(enemy => enemy.alive && Math.abs(enemy.x - this.x) < this.attackRange + 50);
+        
+        // 没有怪物时继续前进
+        if (!nearbyEnemy) {
             if (this.slowed) { currentSpeed *= 0.7; this.slowTimer -= dt; if (this.slowTimer <= 0) this.slowed = false; }
             this.x += currentSpeed * dt;
         }
@@ -1670,15 +1673,8 @@ function spawnEnemy() {
     // 副本中不生成普通怪物
     if (game.dungeon) return;
     
-    // v1.5.0 战斗场景分离 - 在战斗场景中怪物从右侧涌入
-    let spawnX;
-    if (game.battleState === BATTLE_STATES.COMBAT) {
-        // 战斗场景：怪物从屏幕右侧涌入
-        spawnX = player.x + CONFIG.width - 50 + Math.random() * 100;
-    } else {
-        // 推进场景：在玩家前方较近处生成怪物，方便自动战斗
-        spawnX = player.x + 200 + Math.random() * 150;
-    }
+    // v1.6.1 简化版：在玩家前方生成怪物
+    const spawnX = player.x + 150 + Math.random() * 200;
     
     const availableTypes = [];
     if (player.level >= 1) availableTypes.push('阴魂');
@@ -1705,93 +1701,19 @@ function spawnEnemy() {
     }
 }
 
-// v1.5.0 战斗状态机逻辑
+// v1.6.1 简化版战斗逻辑：主角正常前进，遇怪直接战斗
 function updateBattleState(dt) {
-    // 副本中不进行状态机切换
+    // 副本中不处理
     if (game.dungeon) return;
     
-    // 过渡动画中不更新状态
-    if (game.isTransitioning) {
-        game.battleTransitionTimer -= dt;
-        if (game.battleTransitionTimer <= 0) {
-            game.isTransitioning = false;
-        }
-        return;
-    }
-    
-    // 检测前方是否有怪物
-    const enemyInRange = game.enemies.find(enemy => 
-        enemy.alive && enemy.x > player.x && enemy.x < player.x + game.enemyDetectionRange
+    // 简单逻辑：检测前方是否有怪物
+    const nearbyEnemy = game.enemies.find(enemy => 
+        enemy.alive && Math.abs(enemy.x - player.x) < 300
     );
     
-    // 状态切换逻辑
-    if (game.battleState === BATTLE_STATES.ADVANCE) {
-        // 推进状态 - 检测到怪物则进入战斗
-        if (enemyInRange) {
-            game.battleState = BATTLE_STATES.COMBAT;
-            game.previousBattleState = BATTLE_STATES.ADVANCE;
-            game.isTransitioning = true;
-            game.battleTransitionTimer = 0.5;  // 0.5秒过渡
-            game.battleSceneTransition = 1;    // 开始场景切换动画
-            
-            // v1.5.0 初始化战斗波次
-            game.battleDuration = 0;
-            game.monstersThisWave = game.monsterWaveCount;
-            
-            createFloatingText(player.x, player.y - 100, '⚔️ 进入战斗! ⚔️', '#ff6600');
-            createParticle(player.x + player.width/2, player.y - player.height/2, '#ff6600', 20);
-            game.screenShake = 0.3;
-            game.screenShakeIntensity = 8;
-        }
-    } else if (game.battleState === BATTLE_STATES.COMBAT) {
-        // 战斗状态
-        game.battleDuration += dt;
-        
-        // v1.5.0 战斗节奏 - 波次刷新
-        game.waveTimer += dt;
-        if (game.waveTimer >= game.monsterWaveInterval && game.monstersThisWave > 0) {
-            game.waveTimer = 0;
-            // 刷新怪物
-            for (let i = 0; i < Math.min(game.monstersThisWave, game.monsterWaveCount); i++) {
-                setTimeout(() => spawnEnemy(), i * 500);
-            }
-            game.monstersThisWave = game.monsterWaveCount;
-        }
-        
-        // 怪物全部击杀或超时则返回推进状态
-        const aliveEnemies = game.enemies.filter(e => e.alive);
-        
-        if (aliveEnemies.length === 0 && game.battleDuration > 3) {
-            // 战斗胜利
-            game.battleState = BATTLE_STATES.VICTORY;
-            game.isTransitioning = true;
-            game.battleTransitionTimer = 1.0;
-            
-            createFloatingText(player.x, player.y - 100, '🎉 战斗胜利! 🎉', '#ffd700');
-            createParticle(player.x + player.width/2, player.y - player.height/2, '#ffd700', 30);
-            game.screenShake = 0.2;
-        } else if (game.battleDuration >= game.maxBattleDuration) {
-            // 战斗超时，强制结束
-            game.battleState = BATTLE_STATES.VICTORY;
-            game.isTransitioning = true;
-            game.battleTransitionTimer = 1.0;
-            
-            createFloatingText(player.x, player.y - 100, '⏰ 战斗超时!', '#ff8800');
-        }
-    } else if (game.battleState === BATTLE_STATES.VICTORY) {
-        // 胜利状态 - 短暂庆祝后返回推进
-        game.battleState = BATTLE_STATES.ADVANCE;
-        game.previousBattleState = BATTLE_STATES.VICTORY;
-        game.isTransitioning = true;
-        game.battleTransitionTimer = 0.5;
-        game.battleSceneTransition = 0;
-    }
-    
-    // v1.5.0 场景切换动画衰减
-    if (game.battleSceneTransition > 0 && game.battleState === BATTLE_STATES.ADVANCE) {
-        game.battleSceneTransition -= dt * 2;
-        if (game.battleSceneTransition < 0) game.battleSceneTransition = 0;
-    }
+    // 更新 game 对象中的是否在战斗状态（供其他模块使用）
+    game.isFighting = !!nearbyEnemy;
+}
 }
 
 // 装备掉落
@@ -2000,8 +1922,9 @@ function update(dt) {
     player.update(actualDt);
     if (CONFIG.cameraOffset < 0) CONFIG.cameraOffset = 0;
     if (game.comboTimer > 0) { game.comboTimer -= actualDt; if (game.comboTimer <= 0) game.comboCount = 0; }
-    // v1.5.0 战斗节奏 - 推进状态下才生成怪物
-    if (game.battleState === BATTLE_STATES.ADVANCE || game.battleState === BATTLE_STATES.COMBAT) {
+    // v1.6.1 简化战斗：持续生成怪物，但限制数量
+    const aliveEnemies = game.enemies.filter(e => e.alive);
+    if (aliveEnemies.length < 5) {
         game.spawnTimer += actualDt * 1000;
         if (game.spawnTimer >= game.spawnInterval) { 
             spawnEnemy(); 
