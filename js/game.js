@@ -1714,7 +1714,6 @@ function updateBattleState(dt) {
     // 更新 game 对象中的是否在战斗状态（供其他模块使用）
     game.isFighting = !!nearbyEnemy;
 }
-}
 
 // 装备掉落
 function tryDropEquipment(enemy) {
