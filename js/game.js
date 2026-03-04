@@ -1,5 +1,9 @@
 // MiniGame002 - 游戏主逻辑 v1.11.0
 // 代码结构重构：配置数据移至 config.js
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = CONFIG.width;
+canvas.height = CONFIG.height;
 
 const game = {
     running: true, gameOver: false, cameraX: 0, lastTime: 0,
@@ -52,133 +56,7 @@ const game = {
     gold: 0,  // 金币
     goldCoins: [],  // v1.8.0 金币列表
     lootNotifications: [],  // 掉落提示
-    eliteMonsters: [],  // 精英怪列表
-    guideText: null,    // v1.12.0 新手引导文本
-    guideArrow: false   // v1.12.0 新手引导箭头
-};
-
-// ===== v1.12.0 存档系统 =====
-// 存档槽位配置
-const SAVE_SLOTS = 3;
-let autoSaveTimer = 0;
-const AUTO_SAVE_INTERVAL = 30; // 30秒自动存档
-
-// 存档数据结构
-function createSaveData() {
-    return {
-        player: {
-            x: player.x, y: player.y, level: player.level, hp: player.hp, maxHp: player.maxHp,
-            exp: player.exp, requiredExp: player.requiredExp, realm: player.getRealm(),
-            weapon: player.weapon, rage: player.rage,
-            equipment: player.equipment, skills: player.skills,
-            herbInventory: player.herbInventory,
-            pets: player.pets, activePet: player.activePet,
-            companion: player.companion, section: player.section, sectionContrib: player.sectionContrib,
-            mount: player.mount, mountLevel: player.mountLevel,
-            runeInventory: player.runeInventory, activeSkills: player.activeSkills,
-            skillPoints: player.skillPoints
-        },
-        game: {
-            gold: game.gold, killCount: game.killCount, distance: game.distance,
-            battleState: game.battleState, dungeon: game.dungeon,
-            herbs: game.herbs
-        },
-        meta: {
-            timestamp: Date.now(),
-            playTime: player.playTime || 0,
-            version: 'v1.12.0'
-        }
-    };
-}
-
-// 保存游戏到指定槽位
-function saveGame(slot) {
-    if (slot < 0 || slot >= SAVE_SLOTS) return false;
-    const saveData = createSaveData();
-    saveData.meta.timestamp = Date.now();
-    localStorage.setItem('minigame002_save_' + slot, JSON.stringify(saveData));
-    console.log('游戏已保存到槽位 ' + (slot + 1));
-    return true;
-}
-
-// 从指定槽位加载游戏
-function loadGame(slot) {
-    if (slot < 0 || slot >= SAVE_SLOTS) return null;
-    const saved = localStorage.getItem('minigame002_save_' + slot);
-    if (!saved) return null;
-    
-    try {
-        const saveData = JSON.parse(saved);
-        if (saveData.player) {
-            Object.assign(player, saveData.player);
-            player.updateAttackFromWeapon();
-            player.equipment = saveData.player.equipment || { 武器: null, 防具: null, 饰品: null };
-            player.sessionStart = Date.now();
-            player.playTime = saveData.meta.playTime || 0;
-        }
-        if (saveData.game) {
-            game.gold = saveData.game.gold || 0;
-            game.killCount = saveData.game.killCount || 0;
-            game.distance = saveData.game.distance || 0;
-            game.battleState = saveData.game.battleState || BATTLE_STATES.ADVANCE;
-            game.dungeon = saveData.game.dungeon || null;
-            game.herbs = saveData.game.herbs || { '止血草': 0, '灵气花': 0, '凝元果': 0, '千年灵芝': 0, '九天雪莲': 0 };
-        }
-        return saveData;
-    } catch (e) {
-        console.error('加载存档失败:', e);
-        return null;
-    }
-}
-
-// 获取所有存档元数据
-function getAllSaveMetadata() {
-    const metadata = [];
-    for (let i = 0; i < SAVE_SLOTS; i++) {
-        const saved = localStorage.getItem('minigame002_save_' + i);
-        if (saved) {
-            try {
-                const data = JSON.parse(saved);
-                metadata.push({ slot: i, level: data.player?.level || 1, realm: data.player?.realm || '筑基', playTime: data.meta?.playTime || 0 });
-            } catch (e) { metadata.push(null); }
-        } else { metadata.push(null); }
-    }
-    return metadata;
-}
-
-// 自动存档
-function autoSave() {
-    saveGame(0);
-    if (game.particles) createFloatingText(player.x, player.y - 100, '💾 自动保存', '#00ff00');
-}
-
-// 退出时强制存档
-window.addEventListener('beforeunload', function() { saveGame(0); });
-
-// ===== v1.12.0 新手引导系统 =====
-const GuideSystem = {
-    currentStep: 0,
-    completed: false,
-    steps: [
-        { text: '欢迎来到修仙世界！点击屏幕或按空格键开始移动', check: () => true },
-        { text: '按住方向键或A/D键移动角色', check: () => player.x > 150 },
-        { text: '击败怪物获得经验和金币', check: () => game.killCount >= 1 },
-        { text: '升级后可学习新技能', check: () => player.level >= 2 },
-        { text: '收集装备提升战力', check: () => player.equipment['武器'] || player.equipment['防具'] }
-    ],
-    show() {
-        if (this.completed || !this.enabled) return;
-        const step = this.steps[this.currentStep];
-        if (!step) { this.completed = true; localStorage.setItem('minigame002_guide_completed', 'true'); createFloatingText(player.x, player.y - 100, '🎉 引导完成！祝您修仙愉快！', '#ffd700'); return; }
-        game.guideText = step.text; game.guideArrow = true;
-    },
-    update() {
-        if (this.completed || !this.enabled) return;
-        const step = this.steps[this.currentStep];
-        if (step && step.check()) { this.currentStep++; if (this.currentStep >= this.steps.length) { this.completed = true; localStorage.setItem('minigame002_guide_completed', 'true'); } }
-    },
-    skip() { this.completed = true; localStorage.setItem('minigame002_guide_completed', 'true'); },
-    get enabled() { return localStorage.getItem('minigame002_guide_completed') !== 'true'; }
+    eliteMonsters: []  // 精英怪列表
 };
 
 // 兵器系统
@@ -435,13 +313,6 @@ function completeDungeon() {
 function update(dt) {
     if (game.gameOver) return;
     
-    // v1.12.0 自动存档计时
-    autoSaveTimer += dt;
-    if (autoSaveTimer >= AUTO_SAVE_INTERVAL) { autoSave(); autoSaveTimer = 0; }
-    
-    // v1.12.0 新手引导更新
-    if (!GuideSystem.completed) GuideSystem.update();
-    
     // v1.5.0 战斗状态机更新
     updateBattleState(dt);
     
@@ -605,29 +476,6 @@ function drawBackground() {
 
 function drawUI() {
     const realm = player.getRealm();
-    
-    // v1.12.0 新手引导提示
-    if (game.guideText && !GuideSystem.completed) {
-        ctx.save();
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(canvas.width/2 - 200, 80, 400, 50);
-        ctx.strokeStyle = '#ffd700';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(canvas.width/2 - 200, 80, 400, 50);
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 16px Microsoft YaHei';
-        ctx.textAlign = 'center';
-        ctx.fillText(game.guideText, canvas.width/2, 115);
-        ctx.restore();
-    }
-    
-    // v1.12.0 自动存档倒计时
-    if (autoSaveTimer > 0 && autoSaveTimer > AUTO_SAVE_INTERVAL - 5) {
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.font = '12px Microsoft YaHei';
-        ctx.textAlign = 'right';
-        ctx.fillText('💾 自动保存: ' + Math.ceil(AUTO_SAVE_INTERVAL - autoSaveTimer) + '秒', canvas.width - 20, 30);
-    }
     
     // 经验条
     const expPercent = player.exp / player.requiredExp;
@@ -1500,24 +1348,12 @@ function gameLoop(timestamp) {
 }
 
 function startGame() {
-    // v1.12.0 初始化游戏时间
-    if (!player.sessionStart) player.sessionStart = Date.now();
-    if (!player.playTime) player.playTime = 0;
-    // v1.12.0 新手引导初始化
-    GuideSystem.show();
     game.lastTime = performance.now();
     requestAnimationFrame(gameLoop);
 }
 
 // 键盘事件
 document.addEventListener('keydown', function(e) {
-    // 游戏结束时按空格重新开始
-    if (e.code === 'Space' && game.gameOver) {
-        e.preventDefault();
-        location.reload();
-        return;
-    }
-    
     if (e.code === 'Space') {
         e.preventDefault();
         // 优先释放已解锁且不在冷却的技能
@@ -1780,13 +1616,6 @@ document.addEventListener('keydown', function(e) {
                 }
             }
         }
-    }
-});
-
-// 点击 canvas 开始/重新开始游戏
-canvas.addEventListener('click', function() {
-    if (game.gameOver) {
-        location.reload();
     }
 });
 
