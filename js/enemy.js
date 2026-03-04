@@ -71,8 +71,12 @@ class Enemy {
             return;
         }
         
-        // 怪物向玩家移动
-        if (dist > 0 && dist < 300) this.x += this.speed * dt;
+        // 怪物向玩家移动（玩家在右边则向右，在左边则向左）
+        if (dist > 0) {
+            this.x += this.speed * dt;
+        } else if (dist < 0) {
+            this.x -= this.speed * dt;
+        }
     }
 
     attackPlayer() {
@@ -116,6 +120,14 @@ class Enemy {
         ctx.arc(screenX + this.size/2, screenY - this.size/2 + floatOffset, this.size * 0.9, 0, Math.PI * 2);
         ctx.fill();
         
+        // v1.2.5: 根据朝向翻转绘制
+        ctx.save();
+        if (this.direction === -1) {
+            ctx.translate(screenX + this.size/2, screenY - this.size/2);
+            ctx.scale(-1, 1);
+            ctx.translate(-(screenX + this.size/2), -(screenY - this.size/2));
+        }
+        
         switch(this.type) {
             case '阴魂':
                 this.drawGhost(screenX, screenY, floatOffset);
@@ -130,6 +142,8 @@ class Enemy {
                 this.drawZombie(screenX, screenY, floatOffset);
                 break;
         }
+        
+        ctx.restore();
         
         // 血条
         ctx.fillStyle = '#333';
