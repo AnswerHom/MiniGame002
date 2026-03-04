@@ -1,6 +1,6 @@
-// ===== v1.0.2 怪物模块 =====
+// ===== v1.2.4 怪物模块 =====
 
-// v1.2.3: 怪物属性（含攻击距离）
+// v1.2.4: 怪物属性（含攻击距离、动画）
 const ENEMY_TYPES = {
     // 阴魂：白色半透明鬼火，淡淡光晕，圆形
     阴魂: { hp: 20, attack: 5, exp: 10, speed: 20, attackDistance: 40, color: '#e2e8f0', size: 25, realmColor: '#718096' },
@@ -10,6 +10,13 @@ const ENEMY_TYPES = {
     毒蛛: { hp: 25, attack: 10, exp: 12, speed: 25, attackDistance: 35, color: '#1a202c', size: 30, realmColor: '#1a202c' },
     // 僵尸：灰绿色皮肤，双臂平伸
     僵尸: { hp: 40, attack: 12, exp: 20, speed: 20, attackDistance: 45, color: '#68d391', size: 40, realmColor: '#68d391' }
+};
+
+// v1.2.4: 境界颜色区分 - 练气：灰色 | 筑基：绿色 | 金丹：蓝色
+const ENEMY_REALM_COLORS = {
+    '练气': '#888888',
+    '筑基': '#4ade80',
+    '金丹': '#3b82f6'
 };
 
 // v1.0.2: 境界颜色区分
@@ -35,14 +42,23 @@ class Enemy {
         this.attackCooldown = 0;
         this.hitFlash = 0;  // v1.0.2: 受击闪烁
         
-        // v1.0.2: 境界颜色
-        this.realmColor = REALM_COLORS[realm] || REALM_COLORS['练气'];
+        // v1.2.4: 动画相关
+        this.animTime = Math.random() * Math.PI * 2;  // 随机初始相位
+        this.isAttacking = false;
+        this.attackAnimTime = 0;
+        
+        // v1.2.4: 境界颜色 - 练气灰色 | 筑基绿色 | 金丹蓝色
+        this.realmColor = ENEMY_REALM_COLORS[realm] || ENEMY_REALM_COLORS['练气'];
     }
 
     update(dt) {
         if (!this.alive) return;
         if (this.attackCooldown > 0) this.attackCooldown -= dt;
         if (this.hitFlash > 0) this.hitFlash -= dt;
+        
+        // v1.2.4: 更新动画时间
+        this.animTime += dt * 3;
+        if (this.attackAnimTime > 0) this.attackAnimTime -= dt;
         
         const dist = player.x - this.x;
         
@@ -81,6 +97,8 @@ class Enemy {
 
     attackPlayer() {
         this.attackCooldown = 1;
+        this.isAttacking = true;
+        this.attackAnimTime = 0.3;  // v1.2.4: 攻击动画持续0.3秒
         const died = player.takeDamage(this.attack);
         if (died) game.gameOver = true;
     }
@@ -104,23 +122,32 @@ class Enemy {
         const screenX = this.x - CONFIG.cameraOffset;
         const screenY = this.y;
         
-        // v1.0.2: 受击闪烁
+        // v1.2.4: 计算浮动偏移（移动时上下浮动）
+        const floatOffset = Math.sin(this.animTime) * 3;
+        
+        // v1.2.4: 受击闪烁
         if (this.hitFlash > 0) {
             ctx.globalAlpha = 0.5;
         }
         
+        // v1.2.4: 境界光晕
+        ctx.fillStyle = this.realmColor + '40';  // 半透明光晕
+        ctx.beginPath();
+        ctx.arc(screenX + this.size/2, screenY - this.size/2 + floatOffset, this.size * 0.9, 0, Math.PI * 2);
+        ctx.fill();
+        
         switch(this.type) {
             case '阴魂':
-                this.drawGhost(screenX, screenY);
+                this.drawGhost(screenX, screenY, floatOffset);
                 break;
             case '妖狼':
-                this.drawWolf(screenX, screenY);
+                this.drawWolf(screenX, screenY, floatOffset);
                 break;
             case '毒蛛':
-                this.drawSpider(screenX, screenY);
+                this.drawSpider(screenX, screenY, floatOffset);
                 break;
             case '僵尸':
-                this.drawZombie(screenX, screenY);
+                this.drawZombie(screenX, screenY, floatOffset);
                 break;
         }
         
@@ -134,101 +161,123 @@ class Enemy {
     }
     
     // v1.0.2: 阴魂 - 白色半透明鬼火，淡淡光晕，圆形
-    drawGhost(screenX, screenY) {
-        // 光晕
-        ctx.fillStyle = 'rgba(226, 232, 240, 0.3)';
+    // v1.2.4: 添加浮动动画和攻击动画
+    drawGhost(screenX, screenY, floatOffset) {
+        // v1.2.4: 淡淡蓝光特效
+        ctx.fillStyle = 'rgba(147, 197, 253, 0.4)';
         ctx.beginPath();
-        ctx.arc(screenX + this.size/2, screenY - this.size/2, this.size * 0.8, 0, Math.PI * 2);
+        ctx.arc(screenX + this.size/2, screenY - this.size/2 + floatOffset, this.size * 0.8, 0, Math.PI * 2);
         ctx.fill();
         
         // 主体
         ctx.fillStyle = this.baseColor;
         ctx.beginPath();
-        ctx.arc(screenX + this.size/2, screenY - this.size/2, this.size/2, 0, Math.PI * 2);
+        ctx.arc(screenX + this.size/2, screenY - this.size/2 + floatOffset, this.size/2, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // v1.2.4: 攻击动画 - 变大
+        const attackScale = this.attackAnimTime > 0 ? 1.2 : 1;
+        ctx.beginPath();
+        ctx.arc(screenX + this.size/2, screenY - this.size/2 + floatOffset, (this.size/2) * attackScale, 0, Math.PI * 2);
         ctx.fill();
         
         // 眼睛
         ctx.fillStyle = '#000';
-        ctx.fillRect(screenX + 8, screenY - 15, 3, 3);
-        ctx.fillRect(screenX + 14, screenY - 15, 3, 3);
+        ctx.fillRect(screenX + 8, screenY - 15 + floatOffset, 3, 3);
+        ctx.fillRect(screenX + 14, screenY - 15 + floatOffset, 3, 3);
     }
     
     // v1.0.2: 妖狼 - 灰色毛皮，四足奔跑形态
-    drawWolf(screenX, screenY) {
+    // v1.2.4: 添加浮动动画和攻击动画
+    drawWolf(screenX, screenY, floatOffset) {
+        // v1.2.4: 攻击动画 - 身体前倾
+        const attackLean = this.attackAnimTime > 0 ? 5 : 0;
+        
         // 身体
         ctx.fillStyle = this.baseColor;
-        ctx.fillRect(screenX, screenY - 20, this.size, 20);
+        ctx.fillRect(screenX, screenY - 20 + floatOffset, this.size, 20);
         
         // 头部
-        ctx.fillRect(screenX + this.size - 10, screenY - 25, 15, 15);
+        ctx.fillRect(screenX + this.size - 10 + attackLean, screenY - 25 + floatOffset, 15, 15);
         
-        // 四足
-        ctx.fillRect(screenX + 2, screenY - 5, 6, 8);
-        ctx.fillRect(screenX + this.size - 12, screenY - 5, 6, 8);
+        // 四足 - 奔跑动画
+        const legAnim = Math.sin(this.animTime * 2) * 3;
+        ctx.fillRect(screenX + 2 + legAnim, screenY - 5 + floatOffset, 6, 8);
+        ctx.fillRect(screenX + this.size - 12 - legAnim, screenY - 5 + floatOffset, 6, 8);
         
         // 尾巴
-        ctx.fillRect(screenX - 8, screenY - 18, 10, 4);
+        ctx.fillRect(screenX - 8 - legAnim, screenY - 18 + floatOffset, 10, 4);
         
-        // 眼睛
-        ctx.fillStyle = '#f00';
-        ctx.fillRect(screenX + this.size - 5, screenY - 22, 3, 3);
+        // v1.2.4: 绿色眼睛光点
+        ctx.fillStyle = '#22c55e';
+        ctx.fillRect(screenX + this.size - 5 + attackLean, screenY - 22 + floatOffset, 3, 3);
     }
     
     // v1.0.2: 毒蛛 - 黑色背甲，红色斑点，8条腿
-    drawSpider(screenX, screenY) {
+    // v1.2.4: 添加浮动动画和攻击动画
+    drawSpider(screenX, screenY, floatOffset) {
+        // v1.2.4: 攻击动画 - 身体下压
+        const attackSquish = this.attackAnimTime > 0 ? 5 : 0;
+        
         // 身体
         ctx.fillStyle = this.baseColor;
         ctx.beginPath();
-        ctx.ellipse(screenX + this.size/2, screenY - this.size/2, this.size/2, this.size/2.5, 0, 0, Math.PI * 2);
+        ctx.ellipse(screenX + this.size/2, screenY - this.size/2 + floatOffset + attackSquish, this.size/2, (this.size/2.5) - attackSquish * 0.5, 0, 0, Math.PI * 2);
         ctx.fill();
         
         // 红色斑点
         ctx.fillStyle = '#e53e3e';
         ctx.beginPath();
-        ctx.arc(screenX + this.size/2, screenY - this.size/2, 4, 0, Math.PI * 2);
+        ctx.arc(screenX + this.size/2, screenY - this.size/2 + floatOffset + attackSquish, 4, 0, Math.PI * 2);
         ctx.fill();
         
-        // 8条腿
+        // 8条腿 - 摆动动画
+        const legSwing = Math.sin(this.animTime * 2) * 4;
         ctx.strokeStyle = this.baseColor;
         ctx.lineWidth = 2;
         for (let i = 0; i < 4; i++) {
             // 左侧腿
             ctx.beginPath();
-            ctx.moveTo(screenX + 5, screenY - this.size/2);
-            ctx.lineTo(screenX - 8, screenY - this.size/2 - 8 + i * 6);
+            ctx.moveTo(screenX + 5, screenY - this.size/2 + floatOffset + attackSquish);
+            ctx.lineTo(screenX - 8 - legSwing, screenY - this.size/2 - 8 + i * 6 + floatOffset);
             ctx.stroke();
             // 右侧腿
             ctx.beginPath();
-            ctx.moveTo(screenX + this.size - 5, screenY - this.size/2);
-            ctx.lineTo(screenX + this.size + 8, screenY - this.size/2 - 8 + i * 6);
+            ctx.moveTo(screenX + this.size - 5, screenY - this.size/2 + floatOffset + attackSquish);
+            ctx.lineTo(screenX + this.size + 8 + legSwing, screenY - this.size/2 - 8 + i * 6 + floatOffset);
             ctx.stroke();
         }
         
         // 眼睛
         ctx.fillStyle = '#f00';
-        ctx.fillRect(screenX + 8, screenY - this.size - 2, 3, 3);
-        ctx.fillRect(screenX + 14, screenY - this.size - 2, 3, 3);
+        ctx.fillRect(screenX + 8, screenY - this.size - 2 + floatOffset, 3, 3);
+        ctx.fillRect(screenX + 14, screenY - this.size - 2 + floatOffset, 3, 3);
     }
     
     // v1.0.2: 僵尸 - 灰绿色皮肤，双臂平伸
-    drawZombie(screenX, screenY) {
+    // v1.2.4: 添加浮动动画和攻击动画
+    drawZombie(screenX, screenY, floatOffset) {
+        // v1.2.4: 攻击动画 - 双臂前伸
+        const armExtend = this.attackAnimTime > 0 ? 8 : 0;
+        
         // 身体
         ctx.fillStyle = this.baseColor;
-        ctx.fillRect(screenX + 5, screenY - 30, this.size - 10, 30);
+        ctx.fillRect(screenX + 5, screenY - 30 + floatOffset, this.size - 10, 30);
         
         // 头部
         ctx.beginPath();
-        ctx.arc(screenX + this.size/2, screenY - 35, 10, 0, Math.PI * 2);
+        ctx.arc(screenX + this.size/2, screenY - 35 + floatOffset, 10, 0, Math.PI * 2);
         ctx.fill();
         
-        // 双臂平伸
-        ctx.fillRect(screenX - 8, screenY - 25, 15, 6);
-        ctx.fillRect(screenX + this.size - 5, screenY - 25, 15, 6);
+        // v1.2.4: 眼眶深黑
+        ctx.fillStyle = '#000';
+        ctx.fillRect(screenX + 10, screenY - 38 + floatOffset, 4, 4);
+        ctx.fillRect(screenX + 18, screenY - 38 + floatOffset, 4, 4);
         
-        // 眼睛
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(screenX + 10, screenY - 38, 4, 4);
-        ctx.fillRect(screenX + 18, screenY - 38, 4, 4);
+        // 双臂平伸 - 攻击时前伸
+        ctx.fillStyle = this.baseColor;
+        ctx.fillRect(screenX - 8 - armExtend, screenY - 25 + floatOffset, 15 + armExtend, 6);
+        ctx.fillRect(screenX + this.size - 5, screenY - 25 + floatOffset, 15 + armExtend, 6);
     }
 }
 
