@@ -1,4 +1,4 @@
-// ===== v1.0.8 游戏状态 =====
+// ===== v1.1.0 游戏状态 =====
 
 const game = {
     state: 'start',  // start:开始界面, playing:游戏中, gameover:游戏结束
