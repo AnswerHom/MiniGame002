@@ -29,9 +29,9 @@ const EQUIP_COLORS = {
 
 // 装备类型定义
 const EQUIP_TYPES = {
-    '武器': { slot: 'weapon', stat: 'attack', icon: '⚔️' },
-    '防具': { slot: 'armor', stat: 'defense', icon: '🛡️' },
-    '饰品': { slot: 'accessory', stat: 'critRate', icon: '💍' }
+    '武器': { slot: 'weapon', stat: 'attack', statName: '攻击', icon: '⚔️' },
+    '防具': { slot: 'armor', stat: 'defense', statName: '防御', icon: '🛡️' },
+    '饰品': { slot: 'accessory', stat: 'critRate', statName: '暴击', icon: '💍' }
 };
 
 // 装备数据库
@@ -168,7 +168,6 @@ const RAGE_SKILLS = {
 
 // ===== v1.1.0 新增系统 =====
 
-// 装备系统
 const EQUIP_QUALITY = {
     凡品: { color: '#ffffff', mult: 1.0 },
     精品: { color: '#00ff00', mult: 1.5 },
@@ -176,7 +175,7 @@ const EQUIP_QUALITY = {
     仙品: { color: '#ff00ff', mult: 3.0 }
 };
 
-// 境界突破配置
+// v1.1.0 境界突破配置
 const REALM_BREAKTHROUGH = {
     筑基: { requiredLevel: 5, guardian: '阴魂', guardianMult: 1 },
     金丹: { requiredLevel: 10, guardian: '妖狼', guardianMult: 2 },
@@ -1105,9 +1104,9 @@ function drawUI() {
         ctx.globalAlpha = 1;
     }
     
-    // 防御力显示
+    // 防御力显示 v1.1.0
     ctx.fillStyle = '#88ff88'; ctx.font = '10px Microsoft YaHei';
-    ctx.fillText('防御: ' + player.defense, 220, 48);
+    ctx.fillText('防御: ' + player.defense, 180, 95);
     
     // ===== 副本UI =====
     if (game.dungeon) {
@@ -1117,7 +1116,7 @@ function drawUI() {
         ctx.fillText('副本: ' + game.dungeon.name, CONFIG.width/2, 125);
         ctx.fillStyle = '#fff'; ctx.font = '12px Microsoft YaHei';
         ctx.fillText('剩余怪物: ' + game.dungeonEnemiesRemaining, CONFIG.width/2, 145);
-        ctx.fillText('目标: 击败' + game.dungeon.count + '只', CONFIG.width/2, 165);
+        ctx.fillText('目标: 击败' + game.dungeon.enemyCount + '只', CONFIG.width/2, 165);
     }
     
     // ===== 境界突破提示 =====
