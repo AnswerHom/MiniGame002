@@ -1,7 +1,7 @@
 {
-  "lastCheckTime": 0,
-  "lastDocVersion": "v1.0.2",
-  "lastDocPath": "/root/.openclaw/workspace-client/work/MiniGame002/doc/游戏设计文档_v1.0.2.md",
+  "lastCheckTime": 1738474200,
+  "lastDocVersion": "v1.1.0",
+  "lastDocPath": "/root/.openclaw/workspace-client/work/MiniGame002/doc/游戏设计文档_v1.1.0.md",
   "implementedFeatures": [
     "技能系统实现（3个技能）",
     "技能UI显示",
@@ -11,6 +11,14 @@
     "连杀系统",
     "Debuff减速效果",
     "场景切换（3个场景）",
-    "UI优化"
+    "UI优化",
+    "装备系统基础架构",
+    "3类装备实现（武器、防具、饰品）",
+    "装备掉落机制",
+    "装备UI显示",
+    "境界突破机制",
+    "副本入口生成（每1000米）",
+    "4个副本实现（阴魂洞、妖狼谷、万蛛巢、僵尸陵）",
+    "副本奖励发放"
   ]
 }

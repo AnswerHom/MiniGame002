@@ -1208,6 +1208,32 @@ function draw() {
     
     drawBackground();
     
+    // 绘制副本入口
+    if (game.dungeonEntrance && !game.dungeon) {
+        const screenX = game.dungeonEntrance.x - CONFIG.cameraOffset;
+        const bounce = Math.sin(Date.now() * 0.005) * 5;
+        ctx.fillStyle = '#ff00ff';
+        ctx.font = 'bold 20px Microsoft YaHei';
+        ctx.textAlign = 'center';
+        ctx.fillText('🌀 副本入口', screenX, CONFIG.groundY - 60 + bounce);
+        ctx.fillStyle = '#ffd700';
+        ctx.font = '12px Microsoft YaHei';
+        ctx.fillText('按F进入', screenX, CONFIG.groundY - 40 + bounce);
+    }
+    
+    // 绘制副本中的进度
+    if (game.dungeon) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(0, 0, CONFIG.width, 60);
+        ctx.fillStyle = '#ff00ff';
+        ctx.font = 'bold 16px Microsoft YaHei';
+        ctx.textAlign = 'center';
+        ctx.fillText('副本: ' + game.dungeon.name + ' 剩余: ' + game.dungeonEnemiesRemaining + '只', CONFIG.width / 2, 25);
+        ctx.fillStyle = '#ffd700';
+        ctx.font = '12px Microsoft YaHei';
+        ctx.fillText('目标: ' + game.dungeon.description, CONFIG.width / 2, 45);
+    }
+    
     game.expOrbs.forEach(orb => orb.draw());
     game.enemies.forEach(enemy => enemy.draw());
     game.projectiles.forEach(p => p.draw());
