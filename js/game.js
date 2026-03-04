@@ -1,5 +1,5 @@
-// MiniGame002 - 游戏主逻辑 v1.4.0
-// v1.4.0: 宗门系统 + 坐骑系统 + 连携系统 + 符文系统
+// MiniGame002 - 游戏主逻辑 v1.5.0
+// v1.5.0: 战斗状态机 + 战斗场景分离 + 战斗节奏优化 + UI界面重构
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
