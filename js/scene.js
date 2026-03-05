@@ -156,6 +156,11 @@ function drawGroundDetails(cameraX) {
             ctx.beginPath();
             ctx.arc(screenX, CONFIG.groundY - 3, 3, 0, Math.PI * 2);
             ctx.fill();
+        } else if (detail.type === 'stone') {
+            ctx.fillStyle = GROUND_DETAIL_CONFIG.stoneColors[Math.floor(Math.random() * 2)];
+            ctx.beginPath();
+            ctx.ellipse(screenX, CONFIG.groundY - 2, 4, 2, 0, 0, Math.PI * 2);
+            ctx.fill();
         }
     });
 }
