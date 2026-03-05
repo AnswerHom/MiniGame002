@@ -113,6 +113,12 @@ function drawUI() {
     
     // v1.5.6: 背包界面
     drawBackpackUI();
+    
+    // v1.8.0: 技能按钮
+    drawSkillButton();
+    
+    // v1.8.0: 技能界面
+    drawSkillPanelUI();
 }
 
 // v1.3.4: 绘制音效开关按钮 - v1.5.2: 使用布局规范，按钮尺寸≥44px - v1.6.0: 优化位置

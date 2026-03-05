@@ -38,6 +38,9 @@ function update(dt) {
     // v1.5.6: 背包动画更新
     updateBackpackAnim(dt);
     
+    // v1.8.0: 技能系统更新
+    updateSkills(dt);
+    
     // v1.4.3: 连杀状态更新
     game.updateKillStreak();
     
@@ -175,6 +178,9 @@ function startGame() {
     initBackpack();
     game.backpackAnimProgress = 0;
     
+    // v1.8.0: 初始化技能系统
+    initSkills();
+    
     // v1.4.3: 初始化统计
     game.totalDamage = 0;
     game.totalGoldEarned = 0;
@@ -274,7 +280,8 @@ function getButtonArea(buttonName) {
         help: { x: btnPos.x, y: btnPos.y + btnSize + UI_INTERACTION.buttonSpacing, width: btnSize, height: btnSize },
         pause: { x: btnPos.x, y: btnPos.y + (btnSize + UI_INTERACTION.buttonSpacing) * 2, width: btnSize, height: btnSize },
         shop: { x: btnPos.x, y: btnPos.y + (btnSize + UI_INTERACTION.buttonSpacing) * 3, width: btnSize, height: btnSize },
-        backpack: { x: btnPos.x, y: btnPos.y + (btnSize + UI_INTERACTION.buttonSpacing) * 4, width: btnSize, height: btnSize }
+        backpack: { x: btnPos.x, y: btnPos.y + (btnSize + UI_INTERACTION.buttonSpacing) * 4, width: btnSize, height: btnSize },
+        skill: { x: btnPos.x, y: btnPos.y + (btnSize + UI_INTERACTION.buttonSpacing) * 5, width: btnSize, height: btnSize }
     };
     
     return buttonAreas[buttonName];
@@ -399,9 +406,25 @@ function handleClick(e) {
         return;
     }
     
+    // v1.8.0: 技能按钮
+    const skillArea = getButtonArea('skill');
+    if (isPointInButton(clickX, clickY, skillArea)) {
+        if (!game.paused && !game.showShop && !backpack.isOpen) {
+            triggerButtonFeedback('skill');
+            toggleSkillPanel();
+        }
+        return;
+    }
+    
     // v1.5.6: 背包界面点击处理
     if (backpack.isOpen) {
         handleBackpackClick(clickX, clickY);
+        return;
+    }
+    
+    // v1.8.0: 技能界面点击处理
+    if (skillPanel.isOpen) {
+        handleSkillPanelClick(clickX, clickY);
         return;
     }
     
