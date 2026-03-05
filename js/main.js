@@ -29,6 +29,9 @@ function update(dt) {
     // v1.3.9: 购买确认提示更新
     game.updatePurchaseConfirm(dt);
     
+    // v1.4.6: 新手引导更新
+    game.updateGuide(dt);
+    
     // v1.4.3: 屏幕震动更新
     game.updateScreenShake(dt);
     
@@ -114,6 +117,9 @@ function draw() {
     
     // v1.4.3: 绘制连杀显示
     game.drawKillStreak();
+    
+    // v1.4.6: 绘制新手引导
+    game.drawGuide();
     
     // 恢复画布（取消震动偏移）
     ctx.restore();

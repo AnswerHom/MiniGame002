@@ -175,7 +175,9 @@ class Enemy {
             game.recordKill();
             
             // v1.4.3: 击杀反馈增强 - 屏幕震动（振幅5px，持续0.1秒）
-            game.triggerScreenShake(5, 0.1);
+            // v1.4.6: BOSS战斗时减少震动幅度（更平缓）
+            const shakeIntensity = this.isBoss ? 2 : 5;
+            game.triggerScreenShake(shakeIntensity, 0.1);
             
             // v1.4.0: 金币掉落平衡调整 - 根据怪物境界和等级调整
             // 练气: 1-4金币, 筑基: 2-6金币, 金丹: 3-8金币
@@ -195,6 +197,14 @@ class Enemy {
             }
             // v1.4.3: 使用recordGold记录金币获取统计
             game.recordGold(goldDrop);
+            // v1.4.6: 金币获取视觉反馈 - 飘字效果
+            game.addDamageNumber({
+                x: this.x + this.width / 2,
+                y: this.y - this.height,
+                damage: '+' + goldDrop + '💰',
+                isCrit: false,
+                isGold: true
+            });
             // v1.2.7: 怪物死亡音效
             game.playSound('hit');
             // v1.4.0: 添加死亡动画

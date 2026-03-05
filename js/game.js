@@ -51,6 +51,22 @@ const game = {
     // v1.3.9: 购买确认提示
     purchaseConfirm: null,
     
+    // v1.4.6: 新手引导系统
+    guide: {
+        shown: false,
+        step: 0,
+        steps: [
+            { text: '欢迎来到修仙世界！', duration: 2000 },
+            { text: '主角会自动前进和攻击', duration: 2000 },
+            { text: '按 空格键 释放技能', duration: 2000 },
+            { text: '按 B 键 打开商店', duration: 2000 },
+            { text: '按 ESC 键 暂停游戏', duration: 2000 },
+            { text: '祝您游戏愉快！', duration: 2000 }
+        ],
+        timer: 0,
+        alpha: 0
+    },
+    
     // v1.4.3: 触发屏幕震动
     // 振幅5px，持续0.1秒
     triggerScreenShake(intensity = 5, duration = 0.1) {
@@ -194,13 +210,14 @@ const game = {
         requestAnimationFrame(gameLoop);
     },
     
-    // v1.4.0: 暴击视觉反馈 - 红色+更大字号
-    addDamageNumber(x, y, damage, isCrit) {
+    // v1.4.0: 暴击视觉反馈 - 红色+更大字号 - v1.4.6: 金币反馈
+    addDamageNumber(x, y, damage, isCrit, isGold = false) {
         this.damageNumbers.push({
             x: x,
             y: y - 20,  // v1.3.9: 向上偏移20px
             damage: damage,
             isCrit: isCrit,
+            isGold: isGold,
             life: 1.0,  // 1秒生命周期
             vy: -30     // 向上飘动速度
         });
@@ -215,15 +232,76 @@ const game = {
         });
     },
     
-    // v1.0.2: 绘制伤害数字 - v1.4.0: 暴击显示为红色+更大字号
+    // v1.4.6: 更新新手引导
+    updateGuide(dt) {
+        if (!this.guide.shown && this.state === 'playing') {
+            const step = this.guide.steps[this.guide.step];
+            if (step) {
+                this.guide.timer += dt * 1000;
+                if (this.guide.timer >= step.duration) {
+                    this.guide.timer = 0;
+                    this.guide.step++;
+                    if (this.guide.step >= this.guide.steps.length) {
+                        this.guide.shown = true;
+                    }
+                }
+                // 淡入淡出效果
+                if (this.guide.timer < 500) {
+                    this.guide.alpha = this.guide.timer / 500;
+                } else if (this.guide.timer > step.duration - 500) {
+                    this.guide.alpha = (step.duration - this.guide.timer) / 500;
+                } else {
+                    this.guide.alpha = 1;
+                }
+            }
+        }
+    },
+    
+    // v1.4.6: 绘制新手引导
+    drawGuide() {
+        if (this.guide.shown || this.state !== 'playing') return;
+        const step = this.guide.steps[this.guide.step];
+        if (!step) return;
+        
+        // 半透明背景
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
+        
+        // 引导文字
+        ctx.globalAlpha = this.guide.alpha;
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 24px Microsoft YaHei';
+        ctx.textAlign = 'center';
+        ctx.fillText(step.text, CONFIG.width / 2, CONFIG.height / 2);
+        ctx.globalAlpha = 1;
+        
+        // 进度点
+        const dotSpacing = 15;
+        const dotStartX = CONFIG.width / 2 - (this.guide.steps.length - 1) * dotSpacing / 2;
+        for (let i = 0; i < this.guide.steps.length; i++) {
+            ctx.beginPath();
+            ctx.arc(dotStartX + i * dotSpacing, CONFIG.height / 2 + 40, 5, 0, Math.PI * 2);
+            ctx.fillStyle = i === this.guide.step ? '#fff' : '#666';
+            ctx.fill();
+        }
+    },
+    
+    // v1.0.2: 绘制伤害数字 - v1.4.0: 暴击显示为红色+更大字号 - v1.4.6: 金币显示为黄色
     drawDamageNumbers() {
         this.damageNumbers.forEach(dn => {
             const screenX = dn.x - CONFIG.cameraOffset;
-            // v1.4.0: 暴击使用红色和更大字号
-            ctx.font = dn.isCrit ? 'bold 22px Microsoft YaHei' : '14px Microsoft YaHei';
-            ctx.textAlign = 'center';
-            // v1.4.0: 暴击伤害显示为红色
-            ctx.fillStyle = dn.isCrit ? '#ff3333' : '#fff';
+            // v1.4.6: 金币数字使用特殊颜色
+            if (dn.isGold) {
+                ctx.font = 'bold 16px Microsoft YaHei';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#ffd700'; // 金色
+            } else {
+                // v1.4.0: 暴击使用红色和更大字号
+                ctx.font = dn.isCrit ? 'bold 22px Microsoft YaHei' : '14px Microsoft YaHei';
+                ctx.textAlign = 'center';
+                // v1.4.0: 暴击伤害显示为红色
+                ctx.fillStyle = dn.isCrit ? '#ff3333' : '#fff';
+            }
             ctx.globalAlpha = dn.life;
             ctx.fillText(dn.damage, screenX, dn.y);
             ctx.globalAlpha = 1.0;

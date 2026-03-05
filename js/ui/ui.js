@@ -17,9 +17,18 @@ function drawUI() {
     // 血条背景
     ctx.fillStyle = '#333';
     ctx.fillRect(20, 35, 100, 10);
-    // 血条
-    ctx.fillStyle = player.hp > 30 ? '#44ff44' : '#ff4444';
-    ctx.fillRect(20, 35, 100 * Math.max(0, player.hp / player.maxHp), 10);
+    // 血条 - v1.4.6: 颜色渐变（绿到红）
+    const hpPercent = Math.max(0, player.hp / player.maxHp);
+    let hpColor;
+    if (hpPercent > 0.6) {
+        hpColor = '#44ff44'; // 绿色
+    } else if (hpPercent > 0.3) {
+        hpColor = '#ffaa00'; // 橙色
+    } else {
+        hpColor = '#ff4444'; // 红色
+    }
+    ctx.fillStyle = hpColor;
+    ctx.fillRect(20, 35, 100 * hpPercent, 10);
     // 血量
     ctx.fillStyle = '#fff';
     ctx.fillText(player.hp + '/' + player.maxHp, 130, 44);
