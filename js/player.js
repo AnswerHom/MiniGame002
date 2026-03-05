@@ -36,12 +36,27 @@ const player = {
     weaponType: 'sword',
     
     // v1.2.0: Q版水墨风配色（修正后与需求文档一致）
+    // v1.5.3: 仙侠风格优化 - 精致像素风
     robeColor: '#f0f5f9',      // 月白色长袍
     robeAccentColor: '#81e6d9', // 淡青色衣领袖口
     hairColor: '#1a202c',      // 墨黑头发
     hairAccentColor: '#fc8181', // 红色发带
     weaponColor: '#c0c0c0',    // 银色剑身
     weaponAccentColor: '#fc8181', // 红色剑穗
+    
+    // v1.5.3: 仙侠风格配置
+    xianxiaStyle: true,        // 启用仙侠风格
+    robeDetail: true,          // 衣服细节
+    ribbon: true,              // 飘带效果
+    hairDetail: true,          // 精细头发
+    
+    // v1.5.3: 攻击动画参数
+    attackAnimation: {
+        windUp: 0.15,          // 前摇时间(秒)
+        strike: 0.1,            // 攻击时间(秒)
+        followThrough: 0.1,    // 后摇时间(秒)
+        total: 0.35            // 总时长
+    }
     
     // v1.1.0: 动画相关
     idleTime: 0,               // 待机时间
@@ -274,21 +289,69 @@ const player = {
         ctx.fill();
         
         // v1.1.0: 墨黑头发（Q版娃娃头）
+        // v1.5.3: 仙侠风格 - 精细头发设计
         ctx.fillStyle = this.hairColor;
         ctx.beginPath();
         ctx.arc(screenX + 16, screenY - 42, 12, 0, Math.PI * 2);
         ctx.fill();
         
+        // v1.5.3: 仙侠风格 - 增加刘海细节
+        if (this.hairDetail) {
+            ctx.fillRect(screenX + 8, screenY - 50, 4, 8);
+            ctx.fillRect(screenX + 14, screenY - 52, 4, 8);
+            ctx.fillRect(screenX + 20, screenY - 50, 4, 8);
+            // 侧面发丝
+            ctx.fillRect(screenX + 4, screenY - 44, 3, 10);
+            ctx.fillRect(screenX + 25, screenY - 44, 3, 10);
+        }
+        
         // v1.1.0: 红色发带
+        // v1.5.3: 仙侠风格 - 更精致的发带
         ctx.fillStyle = this.hairAccentColor;
         ctx.fillRect(screenX + 4, screenY - 48, 24, 4);
-        // 发带飘带
+        // 发带飘带 - 动态效果
+        const ribbonWave = Math.sin(this.idleTime * 3) * 3;
         ctx.beginPath();
         ctx.moveTo(screenX + 4, screenY - 44);
-        ctx.quadraticCurveTo(screenX - 2, screenY - 38, screenX + 2, screenY - 32);
+        ctx.quadraticCurveTo(screenX - 4 + ribbonWave, screenY - 38, screenX + 2, screenY - 30);
         ctx.lineWidth = 3;
         ctx.strokeStyle = this.hairAccentColor;
         ctx.stroke();
+        
+        // v1.5.3: 仙侠风格 - 飘带效果
+        if (this.ribbon) {
+            // 衣服飘带1 - 左侧
+            ctx.strokeStyle = this.robeAccentColor;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(screenX + 8, screenY - 30);
+            const ribbon1Wave = Math.sin(this.idleTime * 2.5) * 5;
+            ctx.quadraticCurveTo(screenX - 5 + ribbon1Wave, screenY - 15, screenX + 2, screenY - 5);
+            ctx.stroke();
+            
+            // 衣服飘带2 - 右侧
+            ctx.beginPath();
+            ctx.moveTo(screenX + 24, screenY - 30);
+            const ribbon2Wave = Math.sin(this.idleTime * 2.5 + 1) * 5;
+            ctx.quadraticCurveTo(screenX + 37 - ribbon2Wave, screenY - 15, screenX + 30, screenY - 5);
+            ctx.stroke();
+        }
+        
+        // v1.5.3: 仙侠风格 - 衣服细节
+        if (this.robeDetail) {
+            // 衣服纹理 - 竖条纹
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 3; i++) {
+                ctx.beginPath();
+                ctx.moveTo(screenX + 10 + i * 6, screenY - 40);
+                ctx.lineTo(screenX + 10 + i * 6, screenY - 10);
+                ctx.stroke();
+            }
+            // 腰部装饰
+            ctx.fillStyle = this.robeAccentColor;
+            ctx.fillRect(screenX + 10, screenY - 28, 12, 3);
+        }
         
         // 眼睛（Q版大眼）
         ctx.fillStyle = '#333';

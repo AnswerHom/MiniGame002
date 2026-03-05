@@ -39,7 +39,19 @@ const ENEMY_TYPES = {
     
     // v1.4.4: Boss怪物 - 每10波出现一次
     // 远古巨魔：大体型，高血量，高攻击
-    远古巨魔: { hp: 200, hpGrowth: 0.15, attack: 30, attackGrowth: 0.08, exp: 100, speed: 15, attackDistance: 80, stopDistance: 80, color: '#8b0000', size: 80, realmColor: '#ff0000', isBoss: true }
+    远古巨魔: { hp: 200, hpGrowth: 0.15, attack: 30, attackGrowth: 0.08, exp: 100, speed: 15, attackDistance: 80, stopDistance: 80, color: '#8b0000', size: 80, realmColor: '#ff0000', isBoss: true },
+    
+    // v1.5.3: 新增怪物类型
+    // 野猪精：练气期，皮厚移动慢，褐色身体，獠牙
+    野猪精: { hp: 80, hpGrowth: 0.06, attack: 15, attackGrowth: 0.04, exp: 30, speed: 25, attackDistance: 65, stopDistance: 65, color: '#8B4513', size: 40, realmColor: '#8B4513', tusks: true },
+    // 灰狼：练气期，速度快，灰色毛皮
+    灰狼: { hp: 60, hpGrowth: 0.05, attack: 20, attackGrowth: 0.04, exp: 35, speed: 55, attackDistance: 70, stopDistance: 70, color: '#808080', size: 38, realmColor: '#808080', ears: true },
+    // 蛇妖：筑基期，有毒性攻击，绿色身体
+    蛇妖: { hp: 120, hpGrowth: 0.08, attack: 25, attackGrowth: 0.05, exp: 60, speed: 30, attackDistance: 50, stopDistance: 50, color: '#228B22', size: 45, realmColor: '#228B22', tongue: true, poisonous: true },
+    // 僵尸：筑基期，高血量，灰绿色皮肤（旧版僵尸保留但修改属性）
+    僵尸: { hp: 150, hpGrowth: 0.09, attack: 30, attackGrowth: 0.06, exp: 80, speed: 18, attackDistance: 65, stopDistance: 65, color: '#9CA3AF', size: 42, realmColor: '#9CA3AF' },
+    // 山贼：筑基期，攻击高，土匪造型
+    山贼: { hp: 100, hpGrowth: 0.07, attack: 35, attackGrowth: 0.05, exp: 70, speed: 35, attackDistance: 75, stopDistance: 75, color: '#92400E', size: 40, realmColor: '#92400E', weapon: true }
 };
 
 // v1.4.3: 境界难度系数
@@ -271,6 +283,22 @@ class Enemy {
                 break;
             case '远古巨魔':  // v1.4.4: Boss
                 this.drawBoss(screenX, screenY, floatOffset);
+                break;
+            // v1.5.3: 新增怪物类型
+            case '野猪精':
+                this.drawBoar(screenX, screenY, floatOffset);
+                break;
+            case '灰狼':
+                this.drawGreyWolf(screenX, screenY, floatOffset);
+                break;
+            case '蛇妖':
+                this.drawSnakeDemon(screenX, screenY, floatOffset);
+                break;
+            case '僵尸':
+                this.drawZombieV2(screenX, screenY, floatOffset);
+                break;
+            case '山贼':
+                this.drawBandit(screenX, screenY, floatOffset);
                 break;
         }
         
@@ -775,3 +803,251 @@ function spawnEnemy() {
     
     game.enemies.push(enemy);
 }
+
+// v1.5.3: 野猪精 - 褐色身体，獠牙，皮厚移动慢
+Enemy.prototype.drawBoar = function(screenX, screenY, floatOffset) {
+    // 攻击动画 - 冲锋
+    const attackCharge = this.attackAnimTime > 0 ? 8 : 0;
+    
+    // 身体 - 椭圆形
+    ctx.fillStyle = this.baseColor;
+    ctx.beginPath();
+    ctx.ellipse(screenX + this.size/2, screenY - this.size/2 + floatOffset, this.size/2, this.size/2.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 背部深色条纹
+    ctx.fillStyle = '#5D3A1A';
+    ctx.fillRect(screenX + 8, screenY - this.size + floatOffset + 5, this.size - 16, 6);
+    
+    // 头部
+    ctx.fillStyle = this.baseColor;
+    ctx.beginPath();
+    ctx.ellipse(screenX + this.size - 8, screenY - this.size/2 - 5 + floatOffset, 12, 10, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 獠牙
+    ctx.fillStyle = '#F5DEB3';
+    ctx.beginPath();
+    ctx.moveTo(screenX + this.size - 15, screenY - this.size/2 + floatOffset);
+    ctx.lineTo(screenX + this.size - 25, screenY - this.size/2 - 8 + floatOffset);
+    ctx.lineTo(screenX + this.size - 18, screenY - this.size/2 + floatOffset);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(screenX + this.size - 15, screenY - this.size/2 + floatOffset + 4);
+    ctx.lineTo(screenX + this.size - 25, screenY - this.size/2 + floatOffset + 12);
+    ctx.lineTo(screenX + this.size - 18, screenY - this.size/2 + floatOffset + 4);
+    ctx.fill();
+    
+    // 眼睛 - 红色
+    ctx.fillStyle = '#DC143C';
+    ctx.beginPath();
+    ctx.arc(screenX + this.size - 10, screenY - this.size/2 - 8 + floatOffset, 3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 腿 - 短粗
+    ctx.fillStyle = this.baseColor;
+    ctx.fillRect(screenX + 8 + attackCharge, screenY - 8 + floatOffset, 8, 10);
+    ctx.fillRect(screenX + this.size - 18 + attackCharge, screenY - 8 + floatOffset, 8, 10);
+    
+    // 尾巴 - 小卷
+    ctx.fillStyle = '#5D3A1A';
+    ctx.beginPath();
+    ctx.arc(screenX + 5, screenY - this.size/2 + floatOffset - 5, 4, 0, Math.PI * 2);
+    ctx.fill();
+};
+
+// v1.5.3: 灰狼 - 灰色毛皮，速度快，耳朵
+Enemy.prototype.drawGreyWolf = function(screenX, screenY, floatOffset) {
+    // 攻击动画 - 扑咬
+    const attackLunge = this.attackAnimTime > 0 ? 10 : 0;
+    
+    // 身体 - 纺锤形
+    ctx.fillStyle = this.baseColor;
+    ctx.beginPath();
+    ctx.ellipse(screenX + this.size/2, screenY - this.size/2 + floatOffset, this.size/2 + 5, this.size/3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 背部深色毛皮
+    ctx.fillStyle = '#696969';
+    ctx.fillRect(screenX + 5, screenY - this.size + floatOffset + 8, this.size - 10, 5);
+    
+    // 头部 - 三角形
+    ctx.fillStyle = this.baseColor;
+    ctx.beginPath();
+    ctx.moveTo(screenX + this.size - 5 + attackLunge, screenY - this.size/2 - 10 + floatOffset);
+    ctx.lineTo(screenX + this.size + 15 + attackLunge, screenY - this.size/2 + floatOffset);
+    ctx.lineTo(screenX + this.size - 5 + attackLunge, screenY - this.size/2 + 10 + floatOffset);
+    ctx.closePath();
+    ctx.fill();
+    
+    // 耳朵 - 三角形立耳
+    ctx.fillStyle = this.baseColor;
+    ctx.beginPath();
+    ctx.moveTo(screenX + this.size - 5, screenY - this.size/2 - 15 + floatOffset);
+    ctx.lineTo(screenX + this.size - 12, screenY - this.size/2 - 25 + floatOffset);
+    ctx.lineTo(screenX + this.size + 2, screenY - this.size/2 - 15 + floatOffset);
+    ctx.fill();
+    
+    // 眼睛 - 黄色发光
+    ctx.fillStyle = '#FFD700';
+    ctx.beginPath();
+    ctx.arc(screenX + this.size + 5 + attackLunge, screenY - this.size/2 - 5 + floatOffset, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(screenX + this.size + 6 + attackLunge, screenY - this.size/2 - 5 + floatOffset, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 腿 - 奔跑动画
+    const legRun = Math.sin(this.animTime * 3) * 6;
+    ctx.fillStyle = this.baseColor;
+    ctx.fillRect(screenX + 5, screenY - 8 + floatOffset + legRun, 6, 12);
+    ctx.fillRect(screenX + this.size - 15, screenY - 8 + floatOffset - legRun, 6, 12);
+    
+    // 尾巴 - 蓬松
+    ctx.fillStyle = this.baseColor;
+    ctx.beginPath();
+    ctx.ellipse(screenX + 3, screenY - this.size/2 - 5 + floatOffset, 10, 5, -0.5, 0, Math.PI * 2);
+    ctx.fill();
+};
+
+// v1.5.3: 蛇妖 - 绿色身体，有毒性攻击，蛇信
+Enemy.prototype.drawSnakeDemon = function(screenX, screenY, floatOffset) {
+    // 攻击动画 - 毒液喷射
+    const attackBite = this.attackAnimTime > 0 ? 12 : 0;
+    
+    // 身体 - 蛇形盘绕
+    ctx.fillStyle = this.baseColor;
+    ctx.beginPath();
+    // 盘绕的身体
+    ctx.ellipse(screenX + this.size/2, screenY - 15 + floatOffset, this.size/2.5, this.size/3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // 蛇身波浪
+    const wave = Math.sin(this.animTime * 2) * 3;
+    ctx.beginPath();
+    ctx.moveTo(screenX + 8, screenY - 20 + floatOffset);
+    ctx.quadraticCurveTo(screenX + this.size/2 + wave, screenY - 30 + floatOffset, screenX + this.size - 8, screenY - 20 + floatOffset);
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = this.baseColor;
+    ctx.stroke();
+    
+    // 头部 - 三角形
+    ctx.fillStyle = this.baseColor;
+    ctx.beginPath();
+    ctx.moveTo(screenX + this.size/2 + attackBite, screenY - this.size - 5 + floatOffset);
+    ctx.lineTo(screenX + this.size/2 + 15 + attackBite, screenY - this.size/2 + floatOffset);
+    ctx.lineTo(screenX + this.size/2 + attackBite, screenY - this.size/2 + 15 + floatOffset);
+    ctx.closePath();
+    ctx.fill();
+    
+    // 眼睛 - 蛇眼（竖瞳）
+    ctx.fillStyle = '#FFD700';
+    ctx.beginPath();
+    ctx.ellipse(screenX + this.size/2 + 5 + attackBite, screenY - this.size - 10 + floatOffset, 4, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(screenX + this.size/2 + 5 + attackBite, screenY - this.size - 10 + floatOffset, 1.5, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 蛇信 - 分叉
+    ctx.strokeStyle = '#32CD32';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(screenX + this.size/2 + 15 + attackBite, screenY - this.size/2 + 8 + floatOffset);
+    ctx.lineTo(screenX + this.size/2 + 22 + attackBite, screenY - this.size/2 + 12 + floatOffset);
+    ctx.moveTo(screenX + this.size/2 + 15 + attackBite, screenY - this.size/2 + 8 + floatOffset);
+    ctx.lineTo(screenX + this.size/2 + 22 + attackBite, screenY - this.size/2 + 16 + floatOffset);
+    ctx.stroke();
+    
+    // 毒液效果（攻击时）
+    if (this.attackAnimTime > 0) {
+        ctx.fillStyle = 'rgba(0, 255, 0, 0.6)';
+        ctx.beginPath();
+        ctx.arc(screenX + this.size/2 + 25 + attackBite, screenY - this.size/2 + 14 + floatOffset, 6, 0, Math.PI * 2);
+        ctx.fill();
+    }
+};
+
+// v1.5.3: 僵尸V2 - 筑基期，高血量，灰白色皮肤
+Enemy.prototype.drawZombieV2 = function(screenX, screenY, floatOffset) {
+    // 攻击动画 - 双臂前伸
+    const armExtend = this.attackAnimTime > 0 ? 10 : 0;
+    
+    // 身体 - 僵硬直立
+    ctx.fillStyle = this.baseColor;
+    ctx.fillRect(screenX + 8, screenY - 35 + floatOffset, this.size - 16, 30);
+    
+    // 衣服残片
+    ctx.fillStyle = '#4B5563';
+    ctx.fillRect(screenX + 10, screenY - 30 + floatOffset, this.size - 20, 8);
+    ctx.fillRect(screenX + 12, screenY - 18 + floatOffset, this.size - 24, 6);
+    
+    // 头部 - 方正
+    ctx.fillStyle = this.baseColor;
+    ctx.fillRect(screenX + 10, screenY - 48 + floatOffset, this.size - 20, 15);
+    
+    // 眼睛 - 空洞
+    ctx.fillStyle = '#000';
+    ctx.fillRect(screenX + 12, screenY - 44 + floatOffset, 5, 5);
+    ctx.fillRect(screenX + this.size - 17, screenY - 44 + floatOffset, 5, 5);
+    
+    // 嘴巴 - 獠牙外露
+    ctx.fillStyle = '#F5F5DC';
+    ctx.fillRect(screenX + 14, screenY - 37 + floatOffset, 8, 4);
+    
+    // 手臂 - 平伸
+    ctx.fillStyle = this.baseColor;
+    ctx.fillRect(screenX - 5 - armExtend, screenY - 32 + floatOffset, 18, 6);
+    ctx.fillRect(screenX + this.size - 13 + armExtend, screenY - 32 + floatOffset, 18, 6);
+    
+    // 腿
+    ctx.fillStyle = this.baseColor;
+    ctx.fillRect(screenX + 10, screenY - 8 + floatOffset, 8, 12);
+    ctx.fillRect(screenX + this.size - 18, screenY - 8 + floatOffset, 8, 12);
+};
+
+// v1.5.3: 山贼 - 筑基期，攻击高，土匪造型
+Enemy.prototype.drawBandit = function(screenX, screenY, floatOffset) {
+    // 攻击动画 - 挥刀
+    const attackSwing = this.attackAnimTime > 0 ? 15 : 0;
+    
+    // 身体 - 劲装
+    ctx.fillStyle = this.baseColor;
+    ctx.fillRect(screenX + 10, screenY - 35 + floatOffset, this.size - 20, 30);
+    
+    // 腰带
+    ctx.fillStyle = '#78350F';
+    ctx.fillRect(screenX + 8, screenY - 20 + floatOffset, this.size - 16, 5);
+    
+    // 头部 - 头巾
+    ctx.fillStyle = '#92400E';
+    ctx.fillRect(screenX + 8, screenY - 48 + floatOffset, this.size - 16, 12);
+    // 头巾飘带
+    const ribbonWave = Math.sin(this.animTime * 2) * 3;
+    ctx.fillRect(screenX + this.size - 5, screenY - 45 + floatOffset, 8, 3);
+    ctx.fillRect(screenX + this.size - 8 + ribbonWave, screenY - 42 + floatOffset, 12, 2);
+    
+    // 眼睛 - 凶恶
+    ctx.fillStyle = '#000';
+    ctx.fillRect(screenX + 12, screenY - 40 + floatOffset, 5, 4);
+    ctx.fillRect(screenX + this.size - 17, screenY - 40 + floatOffset, 5, 4);
+    // 眉毛 - 凶眉
+    ctx.fillRect(screenX + 11, screenY - 42 + floatOffset, 7, 2);
+    ctx.fillRect(screenX + this.size - 18, screenY - 42 + floatOffset, 7, 2);
+    
+    // 武器 - 刀
+    ctx.fillStyle = '#A1A1AA';
+    ctx.save();
+    ctx.translate(screenX + this.size - 5 + attackSwing, screenY - 25 + floatOffset);
+    ctx.rotate(attackSwing * 0.03);
+    ctx.fillRect(0, -2, 25, 4);  // 刀身
+    ctx.fillStyle = '#78350F';
+    ctx.fillRect(-3, -3, 5, 6);  // 刀柄
+    ctx.restore();
+    
+    // 腿
+    ctx.fillStyle = '#4B5563';
+    ctx.fillRect(screenX + 10, screenY - 8 + floatOffset, 8, 12);
+    ctx.fillRect(screenX + this.size - 18, screenY - 8 + floatOffset, 8, 12);
+};
