@@ -14,7 +14,7 @@ const player = {
     speed: 80,   // v1.2.3: 80px/秒（固定值）
     attackCooldown: 0,
     attackInterval: 1.2,  // 攻击间隔（秒）
-    attackRange: 50,  // v1.5.7: 5米 (10px=1m)
+    attackRange: 70,  // v1.5.9: 7米 (10px=1m)，确保能攻击到停在6米的怪物
     viewDistance: 300,  // v1.5.7: 30米 - 主角视野范围
     critRate: 0.05,
     critDamage: 2.0,
