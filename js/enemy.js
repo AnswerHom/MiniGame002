@@ -1,28 +1,29 @@
-// ===== v1.2.9 怪物模块 =====
+// ===== v1.3.2 怪物模块 =====
+// v1.3.2: 修复怪物AI逻辑 - attackDistance >= stopDistance
 
-// v1.2.9: 怪物属性（含攻击距离、动画、安全距离）
+// v1.3.2: 怪物属性配置（已修正 attackDistance >= stopDistance）
 const ENEMY_TYPES = {
     // 阴魂：白色半透明鬼火，淡淡光晕，圆形
-    阴魂: { hp: 20, attack: 5, exp: 10, speed: 20, attackDistance: 40, stopDistance: 60, color: '#e2e8f0', size: 25, realmColor: '#718096' },
+    阴魂: { hp: 20, attack: 5, exp: 10, speed: 20, attackDistance: 60, stopDistance: 60, color: '#e2e8f0', size: 25, realmColor: '#718096' },
     // 妖狼：灰色毛皮，四足奔跑形态
-    妖狼: { hp: 30, attack: 8, exp: 15, speed: 50, attackDistance: 50, stopDistance: 70, color: '#718096', size: 35, realmColor: '#718096' },
+    妖狼: { hp: 30, attack: 8, exp: 15, speed: 50, attackDistance: 70, stopDistance: 70, color: '#718096', size: 35, realmColor: '#718096' },
     // 毒蛛：黑色背甲，红色斑点，8条腿
-    毒蛛: { hp: 25, attack: 10, exp: 12, speed: 25, attackDistance: 35, stopDistance: 55, color: '#1a202c', size: 30, realmColor: '#1a202c' },
+    毒蛛: { hp: 25, attack: 10, exp: 12, speed: 25, attackDistance: 55, stopDistance: 55, color: '#1a202c', size: 30, realmColor: '#1a202c' },
     // 僵尸：灰绿色皮肤，双臂平伸
-    僵尸: { hp: 40, attack: 12, exp: 20, speed: 20, attackDistance: 45, stopDistance: 65, color: '#68d391', size: 40, realmColor: '#68d391' },
+    僵尸: { hp: 40, attack: 12, exp: 20, speed: 20, attackDistance: 65, stopDistance: 65, color: '#68d391', size: 40, realmColor: '#68d391' },
     // v1.2.9: 新增怪物
     // 蝴蝶精：彩色翅膀，速度快，血量低
-    蝴蝶精: { hp: 15, attack: 4, exp: 8, speed: 60, attackDistance: 30, stopDistance: 50, color: '#f9a8d4', size: 20, realmColor: '#f9a8d4' },
+    蝴蝶精: { hp: 15, attack: 4, exp: 8, speed: 60, attackDistance: 50, stopDistance: 50, color: '#f9a8d4', size: 20, realmColor: '#f9a8d4' },
     // 毒蛇：绿色身体，三角形头部
-    毒蛇: { hp: 25, attack: 15, exp: 15, speed: 35, attackDistance: 25, stopDistance: 45, color: '#22c55e', size: 35, realmColor: '#22c55e' },
+    毒蛇: { hp: 25, attack: 15, exp: 15, speed: 35, attackDistance: 45, stopDistance: 45, color: '#22c55e', size: 35, realmColor: '#22c55e' },
     // 骷髅兵：白色骨架
-    骷髅: { hp: 45, attack: 14, exp: 22, speed: 25, attackDistance: 40, stopDistance: 60, color: '#f5f5f4', size: 38, realmColor: '#f5f5f4' },
+    骷髅: { hp: 45, attack: 14, exp: 22, speed: 25, attackDistance: 60, stopDistance: 60, color: '#f5f5f4', size: 38, realmColor: '#f5f5f4' },
     // 蝙蝠：黑色翅膀倒挂
-    蝙蝠: { hp: 18, attack: 6, exp: 10, speed: 40, attackDistance: 35, stopDistance: 55, color: '#1a1a1a', size: 28, realmColor: '#1a1a1a' },
+    蝙蝠: { hp: 18, attack: 6, exp: 10, speed: 40, attackDistance: 55, stopDistance: 55, color: '#1a1a1a', size: 28, realmColor: '#1a1a1a' },
     // 魔藤：紫色藤蔓，地面生长
-    魔藤: { hp: 35, attack: 18, exp: 18, speed: 15, attackDistance: 20, stopDistance: 40, color: '#805ad5', size: 32, realmColor: '#805ad5' },
+    魔藤: { hp: 35, attack: 18, exp: 18, speed: 15, attackDistance: 40, stopDistance: 40, color: '#805ad5', size: 32, realmColor: '#805ad5' },
     // 冰魔：蓝白色寒冰形态
-    冰魔: { hp: 50, attack: 10, exp: 25, speed: 18, attackDistance: 50, stopDistance: 75, color: '#63b3ed', size: 42, realmColor: '#63b3ed' }
+    冰魔: { hp: 50, attack: 10, exp: 25, speed: 18, attackDistance: 75, stopDistance: 75, color: '#63b3ed', size: 42, realmColor: '#63b3ed' }
 };
 
 // v1.2.4: 境界颜色区分 - 练气：灰色 | 筑基：绿色 | 金丹：蓝色
