@@ -50,16 +50,11 @@ const player = {
     ribbon: true,              // 飘带效果
     hairDetail: true,          // 精细头发
     
-    // v1.5.3: 攻击动画参数
-    attackAnimation: {
-        windUp: 0.15,          // 前摇时间(秒)
-        strike: 0.1,            // 攻击时间(秒)
-        followThrough: 0.1,    // 后摇时间(秒)
-        total: 0.35            // 总时长
-    },
     
     // v1.1.0: 动画相关
     idleTime: 0,               // 待机时间
+// v1.5.3: 攻击动画参数
+
     idleFloatOffset: 0,        // 浮动偏移量
     
     // v1.3.9: debuff视觉效果
