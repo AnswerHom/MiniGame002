@@ -14,6 +14,9 @@ const game = {
     startTime: 0,  // v1.2.7: 记录开局时间
     // v1.2.7: 音效系统
     soundEnabled: true,
+    // v1.2.8: AudioContext初始化（延迟到用户交互）
+    audioCtx: null,
+    audioInitialized: false,
     
     // v1.2.7: 根据游戏进度调整生成间隔
     getAdjustedSpawnInterval() {
@@ -23,42 +26,59 @@ const game = {
         return this.spawnInterval - reduction;
     },
     
+    // v1.2.8: 初始化AudioContext（用户首次交互时调用）
+    initAudio() {
+        if (this.audioInitialized) return;
+        try {
+            this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            this.audioInitialized = true;
+        } catch(e) {
+            console.warn('AudioContext initialization failed:', e);
+        }
+    },
+    
     // v1.2.7: 播放音效
     playSound(type) {
         if (!this.soundEnabled || !window.AudioContext) return;
         
+        // v1.2.8: 延迟初始化AudioContext
+        if (!this.audioInitialized) {
+            this.initAudio();
+        }
+        
+        if (!this.audioCtx) return;
+        
         // 简化音效：使用Web Audio API生成简单音效
         try {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
+            const oscillator = this.audioCtx.createOscillator();
+            const gainNode = this.audioCtx.createGain();
             
             oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
+            gainNode.connect(this.audioCtx.destination);
             
             switch(type) {
                 case 'attack':
                     oscillator.frequency.value = 440;
-                    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-                    oscillator.start(audioCtx.currentTime);
-                    oscillator.stop(audioCtx.currentTime + 0.1);
+                    gainNode.gain.setValueAtTime(0.1, this.audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioCtx.currentTime + 0.1);
+                    oscillator.start(this.audioCtx.currentTime);
+                    oscillator.stop(this.audioCtx.currentTime + 0.1);
                     break;
                 case 'hit':
                     oscillator.frequency.value = 220;
-                    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-                    oscillator.start(audioCtx.currentTime);
-                    oscillator.stop(audioCtx.currentTime + 0.15);
+                    gainNode.gain.setValueAtTime(0.1, this.audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioCtx.currentTime + 0.15);
+                    oscillator.start(this.audioCtx.currentTime);
+                    oscillator.stop(this.audioCtx.currentTime + 0.15);
                     break;
                 case 'levelup':
                     oscillator.frequency.value = 523;
-                    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                    oscillator.frequency.setValueAtTime(659, audioCtx.currentTime + 0.1);
-                    oscillator.frequency.setValueAtTime(784, audioCtx.currentTime + 0.2);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-                    oscillator.start(audioCtx.currentTime);
-                    oscillator.stop(audioCtx.currentTime + 0.3);
+                    gainNode.gain.setValueAtTime(0.1, this.audioCtx.currentTime);
+                    oscillator.frequency.setValueAtTime(659, this.audioCtx.currentTime + 0.1);
+                    oscillator.frequency.setValueAtTime(784, this.audioCtx.currentTime + 0.2);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioCtx.currentTime + 0.3);
+                    oscillator.start(this.audioCtx.currentTime);
+                    oscillator.stop(this.audioCtx.currentTime + 0.3);
                     break;
             }
         } catch(e) {
@@ -114,6 +134,100 @@ const game = {
             ctx.fillStyle = dn.isCrit ? '#ffd700' : '#fff';
             ctx.globalAlpha = dn.life;
             ctx.fillText(dn.damage, screenX, dn.y);
+            ctx.globalAlpha = 1.0;
+        });
+    },
+    
+    // v1.2.8: 暴击特效
+    critEffects: [],
+    
+    addCritEffect(x, y) {
+        this.critEffects.push({
+            x: x,
+            y: y,
+            life: 0.5,
+            particles: Array.from({length: 8}, () => ({
+                angle: Math.random() * Math.PI * 2,
+                speed: 50 + Math.random() * 100,
+                size: 2 + Math.random() * 3
+            }))
+        });
+    },
+    
+    updateCritEffects(dt) {
+        this.critEffects = this.critEffects.filter(effect => {
+            effect.life -= dt;
+            effect.particles.forEach(p => {
+                p.x = effect.x + Math.cos(p.angle) * p.speed * (0.5 - effect.life);
+                p.y = effect.y + Math.sin(p.angle) * p.speed * (0.5 - effect.life) - 30 * dt;
+            });
+            return effect.life > 0;
+        });
+    },
+    
+    drawCritEffects() {
+        this.critEffects.forEach(effect => {
+            const screenX = effect.x - CONFIG.cameraOffset;
+            ctx.globalAlpha = effect.life * 2;
+            ctx.fillStyle = '#ffd700';
+            effect.particles.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x - CONFIG.cameraOffset, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1.0;
+        });
+    },
+    
+    // v1.2.8: 升级特效
+    levelUpEffects: [],
+    
+    addLevelUpEffect(x, y) {
+        this.levelUpEffects.push({
+            x: x,
+            y: y,
+            life: 1.5,
+            rings: [0, 0.3, 0.6]
+        });
+    },
+    
+    updateLevelUpEffects(dt) {
+        this.levelUpEffects = this.levelUpEffects.filter(effect => {
+            effect.life -= dt;
+            effect.rings = effect.rings.map(r => r + dt * 80);
+            return effect.life > 0;
+        });
+    },
+    
+    drawLevelUpEffects() {
+        this.levelUpEffects.forEach(effect => {
+            const screenX = effect.x - CONFIG.cameraOffset;
+            const progress = 1 - effect.life / 1.5;
+            
+            // 光柱
+            ctx.globalAlpha = effect.life;
+            const gradient = ctx.createLinearGradient(screenX, effect.y - 100, screenX, effect.y);
+            gradient.addColorStop(0, 'rgba(255, 215, 0, 0)');
+            gradient.addColorStop(0.5, 'rgba(255, 215, 0, 0.8)');
+            gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(screenX - 20, effect.y - 100, 40, 100);
+            
+            // 扩散光环
+            effect.rings.forEach((radius, i) => {
+                ctx.strokeStyle = `rgba(255, 215, 0, ${effect.life * (1 - i * 0.3)})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(screenX, effect.y, radius * 30, 0, Math.PI * 2);
+                ctx.stroke();
+            });
+            
+            // "升级!"文字
+            ctx.font = 'bold 20px Microsoft YaHei';
+            ctx.fillStyle = '#ffd700';
+            ctx.textAlign = 'center';
+            ctx.fillText('升级!', screenX, effect.y - 60 - progress * 20);
+            
             ctx.globalAlpha = 1.0;
         });
     }

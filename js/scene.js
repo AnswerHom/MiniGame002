@@ -6,10 +6,18 @@ const SCENES = [
     { name: '古墓遗迹', bgColor: ['#1a1a1a', '#2a2a2a', '#1a2a2a'], groundColor: '#2a2a2a', sky: 'night' }
 ];
 
+// v1.2.8: 山脉层次配置
+const MOUNTAIN_LAYERS = [
+    { color: 'rgba(30, 20, 50, 0.4)', speed: 0.1, height: 0.35, amplitude: 80 },
+    { color: 'rgba(40, 30, 60, 0.5)', speed: 0.2, height: 0.30, amplitude: 60 },
+    { color: 'rgba(50, 40, 70, 0.6)', speed: 0.3, height: 0.25, amplitude: 40 }
+];
+
 let sceneState = {
     clouds: [],
     stars: [],
-    groundDetails: []
+    groundDetails: [],
+    mountains: []  // v1.2.8: 山脉缓存
 };
 
 function getScene(distance) {
@@ -62,6 +70,9 @@ function drawBackground() {
     if (scene.sky !== 'night') {
         drawClouds(cameraX);
     }
+    
+    // v1.2.8: 绘制远景山脉
+    drawMountains(cameraX);
     
     ctx.fillStyle = scene.groundColor;
     ctx.fillRect(0, CONFIG.groundY, CONFIG.width, CONFIG.height - CONFIG.groundY);
@@ -146,5 +157,33 @@ function drawGroundDetails(cameraX) {
             ctx.arc(screenX, CONFIG.groundY - 3, 3, 0, Math.PI * 2);
             ctx.fill();
         }
+    });
+}
+
+// v1.2.8: 绘制远景山脉
+function drawMountains(cameraX) {
+    if (!player) return;
+    
+    MOUNTAIN_LAYERS.forEach(function(layer, index) {
+        var parallaxX = cameraX * layer.speed;
+        var baseY = CONFIG.groundY;
+        var peakY = baseY - CONFIG.height * layer.height;
+        
+        ctx.fillStyle = layer.color;
+        ctx.beginPath();
+        ctx.moveTo(0, baseY);
+        
+        // 使用正弦波生成山脉轮廓
+        for (var x = 0; x <= CONFIG.width; x += 10) {
+            var worldX = x + parallaxX;
+            var height = Math.sin(worldX * 0.005) * layer.amplitude 
+                       + Math.sin(worldX * 0.01) * layer.amplitude * 0.5
+                       + Math.sin(worldX * 0.02) * layer.amplitude * 0.25;
+            ctx.lineTo(x, peakY + layer.amplitude + height);
+        }
+        
+        ctx.lineTo(CONFIG.width, baseY);
+        ctx.closePath();
+        ctx.fill();
     });
 }

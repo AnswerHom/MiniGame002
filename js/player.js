@@ -79,6 +79,11 @@ const player = {
             
             game.addDamageNumber(enemy.x, enemy.y - enemy.height, damage, isCrit);
             
+            // v1.2.8: 暴击时添加特效
+            if (isCrit) {
+                game.addCritEffect(enemy.x, enemy.y - enemy.height / 2);
+            }
+            
             enemy.takeDamage(damage);
             
             // v1.2.7: 攻击音效
@@ -105,6 +110,8 @@ const player = {
         this.attack = Math.floor(this.attack * 1.15);
         // v1.2.7: 升级音效
         game.playSound('levelup');
+        // v1.2.8: 升级特效
+        game.addLevelUpEffect(this.x, this.y - this.height);
     },
 
     // v1.1.0: Q版水墨风角色造型

@@ -6,6 +6,12 @@ function update(dt) {
     // 伤害数字更新
     game.updateDamageNumbers(dt);
     
+    // v1.2.8: 暴击特效更新
+    game.updateCritEffects(dt);
+    
+    // v1.2.8: 升级特效更新
+    game.updateLevelUpEffects(dt);
+    
     // 玩家更新
     player.update(dt);
     
@@ -56,6 +62,12 @@ function draw() {
     
     // 绘制伤害数字
     game.drawDamageNumbers();
+    
+    // v1.2.8: 绘制暴击特效
+    game.drawCritEffects();
+    
+    // v1.2.8: 绘制升级特效
+    game.drawLevelUpEffects();
     
     // 绘制UI
     drawUI();
@@ -108,9 +120,17 @@ function startGame() {
 // v1.2.2: 点击重新开始
 const gameCanvas = document.getElementById('gameCanvas');
 gameCanvas.addEventListener('click', function() {
+    // v1.2.8: 首次交互时初始化AudioContext
+    game.initAudio();
+    
     if (game.gameOver) {
         game.restart();
     }
+});
+
+// v1.2.8: 键盘交互时也初始化AudioContext
+document.addEventListener('keydown', function() {
+    game.initAudio();
 });
 
 window.onload = startGame;
