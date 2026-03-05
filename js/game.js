@@ -230,12 +230,15 @@ const game = {
         });
     },
     
-    // v1.4.3: 绘制连杀数
+    // v1.4.3: 绘制连杀数 - v1.4.4: 添加倒计时显示
     drawKillStreak() {
         if (this.killStreak >= 2) {
             // 连杀文字显示在玩家上方
             const screenX = player.x - CONFIG.cameraOffset;
             const screenY = player.y - player.height - 40;
+            
+            // 计算剩余时间
+            const remainingTime = Math.max(0, (this.killStreakTimeout - (Date.now() - this.lastKillTime)) / 1000);
             
             // 发光效果
             ctx.shadowColor = '#ffd700';
@@ -246,6 +249,13 @@ const game = {
             ctx.textAlign = 'center';
             ctx.fillStyle = '#ffd700';
             ctx.fillText(this.killStreak + '连杀!', screenX + 16, screenY);
+            
+            // v1.4.4: 倒计时显示
+            if (remainingTime > 0) {
+                ctx.font = '14px Microsoft YaHei';
+                ctx.fillStyle = '#aaa';
+                ctx.fillText(remainingTime.toFixed(1) + 's', screenX + 16, screenY + 18);
+            }
             
             // 重置阴影
             ctx.shadowBlur = 0;

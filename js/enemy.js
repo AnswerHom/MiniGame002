@@ -35,7 +35,11 @@ const ENEMY_TYPES = {
     魔藤: { hp: 30, hpGrowth: 0.06, attack: 15, attackGrowth: 0.05, exp: 18, speed: 15, attackDistance: 40, stopDistance: 40, color: '#805ad5', size: 32, realmColor: '#805ad5' },
     // 冰魔：蓝白色寒冰形态
     // 初始HP：45, HP成长：0.09, 初始攻击：10, 攻击成长：0.04
-    冰魔: { hp: 45, hpGrowth: 0.09, attack: 10, attackGrowth: 0.04, exp: 25, speed: 18, attackDistance: 75, stopDistance: 75, color: '#63b3ed', size: 42, realmColor: '#63b3ed' }
+    冰魔: { hp: 45, hpGrowth: 0.09, attack: 10, attackGrowth: 0.04, exp: 25, speed: 18, attackDistance: 75, stopDistance: 75, color: '#63b3ed', size: 42, realmColor: '#63b3ed' },
+    
+    // v1.4.4: Boss怪物 - 每10波出现一次
+    // 远古巨魔：大体型，高血量，高攻击
+    远古巨魔: { hp: 200, hpGrowth: 0.15, attack: 30, attackGrowth: 0.08, exp: 100, speed: 15, attackDistance: 80, stopDistance: 80, color: '#8b0000', size: 80, realmColor: '#ff0000', isBoss: true }
 };
 
 // v1.4.3: 境界难度系数
@@ -260,6 +264,9 @@ class Enemy {
                 break;
             case '冰魔':  // v1.2.9: 新增
                 this.drawIceDevil(screenX, screenY, floatOffset);
+                break;
+            case '远古巨魔':  // v1.4.4: Boss
+                this.drawBoss(screenX, screenY, floatOffset);
                 break;
         }
         
@@ -674,11 +681,76 @@ class Enemy {
             ctx.fill();
         }
     }
+    
+    // v1.4.4: Boss绘制方法 - 远古巨魔
+    drawBoss(screenX, screenY, floatOffset) {
+        // 呼吸动画
+        const breathe = Math.sin(this.animTime * 2) * 2;
+        
+        // Boss光晕效果
+        ctx.shadowColor = '#ff0000';
+        ctx.shadowBlur = 20;
+        
+        // 身体（巨大红色）
+        ctx.fillStyle = '#8b0000';
+        ctx.beginPath();
+        ctx.arc(screenX + this.size/2, screenY - this.size/2 + floatOffset, this.size/2 + breathe, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 眼睛（发光红眼）
+        ctx.fillStyle = '#ff0000';
+        ctx.beginPath();
+        ctx.arc(screenX + this.size/2 - 10, screenY - this.size/2 - 5 + floatOffset, 6, 0, Math.PI * 2);
+        ctx.arc(screenX + this.size/2 + 10, screenY - this.size/2 - 5 + floatOffset, 6, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 牙齿
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.moveTo(screenX + this.size/2 - 15, screenY - 10 + floatOffset);
+        ctx.lineTo(screenX + this.size/2 - 10, screenY - 20 + floatOffset);
+        ctx.lineTo(screenX + this.size/2 - 5, screenY - 10 + floatOffset);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(screenX + this.size/2 + 5, screenY - 10 + floatOffset);
+        ctx.lineTo(screenX + this.size/2 + 10, screenY - 20 + floatOffset);
+        ctx.lineTo(screenX + this.size/2 + 15, screenY - 10 + floatOffset);
+        ctx.fill();
+        
+        // 角
+        ctx.fillStyle = '#4a0000';
+        ctx.beginPath();
+        ctx.moveTo(screenX + this.size/2 - 15, screenY - this.size/2 + floatOffset);
+        ctx.lineTo(screenX + this.size/2 - 25, screenY - this.size - 10 + floatOffset);
+        ctx.lineTo(screenX + this.size/2 - 5, screenY - this.size/2 + floatOffset);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(screenX + this.size/2 + 15, screenY - this.size/2 + floatOffset);
+        ctx.lineTo(screenX + this.size/2 + 25, screenY - this.size - 10 + floatOffset);
+        ctx.lineTo(screenX + this.size/2 + 5, screenY - this.size/2 + floatOffset);
+        ctx.fill();
+        
+        // 重置阴影
+        ctx.shadowBlur = 0;
+    }
 }
 
 function spawnEnemy() {
-    const types = Object.keys(ENEMY_TYPES);
-    const type = types[Math.floor(Math.random() * types.length)];
+    // v1.4.4: 计算当前波次
+    const wave = Math.floor(player.x / 1000) + 1;
+    
+    // v1.4.4: 每10波生成一个Boss
+    const isBossWave = wave % 10 === 0;
+    
+    let type;
+    if (isBossWave) {
+        // Boss波次，生成Boss
+        type = '远古巨魔';
+    } else {
+        // 随机普通怪物
+        const types = Object.keys(ENEMY_TYPES).filter(t => !ENEMY_TYPES[t].isBoss);
+        type = types[Math.floor(Math.random() * types.length)];
+    }
     
     // v1.2.6: 开局时在玩家附近生成怪物，后续怪物从屏幕右侧生成
     let spawnX;
@@ -690,5 +762,12 @@ function spawnEnemy() {
         spawnX = player.x + CONFIG.width + Math.random() * 200;
     }
     
-    game.enemies.push(new Enemy(spawnX, type));
+    const enemy = new Enemy(spawnX, type);
+    
+    // v1.4.4: Boss特殊标记
+    if (isBossWave) {
+        enemy.isBoss = true;
+    }
+    
+    game.enemies.push(enemy);
 }

@@ -58,6 +58,14 @@ function drawUI() {
     ctx.fillStyle = '#a855f7';
     ctx.fillText('第 ' + wave + ' 波', 20, 100);
     
+    // v1.4.4: 伤害统计实时显示
+    ctx.fillStyle = '#ff6b6b';
+    ctx.fillText('伤害: ' + game.totalDamage, 130, 100);
+    
+    // v1.4.4: 累计金币获取显示
+    ctx.fillStyle = '#ffd700';
+    ctx.fillText('累计: ' + game.totalGoldEarned, 20, 120);
+    
     // 场景名称
     const scene = getScene(player.x);
     ctx.fillStyle = '#aaa';
