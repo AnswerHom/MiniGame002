@@ -2,7 +2,11 @@
 
 function update(dt) {
     // v1.3.5: 暂停时不更新游戏
-    if (game.gameOver || game.paused) return;
+    if (game.gameOver || game.paused) {
+        // v1.3.9: 暂停时也更新购买确认提示
+        game.updatePurchaseConfirm(dt);
+        return;
+    }
     
     // 伤害数字更新
     game.updateDamageNumbers(dt);
@@ -15,6 +19,9 @@ function update(dt) {
     
     // v1.3.6: 增益效果更新
     game.updatePowerups(dt);
+    
+    // v1.3.9: 购买确认提示更新
+    game.updatePurchaseConfirm(dt);
     
     // 玩家更新
     player.update(dt);
@@ -78,6 +85,9 @@ function draw() {
     // 绘制UI
     drawUI();
     
+    // v1.3.9: 绘制购买确认提示
+    game.drawPurchaseConfirm();
+    
     // 游戏结束
     if (game.gameOver) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
@@ -138,7 +148,7 @@ document.addEventListener('keydown', function() {
     game.initAudio();
 });
 
-// v1.3.5: 暂停功能 - ESC键
+// v1.3.5: 暂停功能 - ESC键 - v1.3.9: 商店快捷键 B键
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape' && !game.gameOver) {
         game.paused = !game.paused;
@@ -147,6 +157,10 @@ document.addEventListener('keydown', function(e) {
             game.lastTime = performance.now();
             requestAnimationFrame(gameLoop);
         }
+    }
+    // v1.3.9: 商店快捷键 B键
+    if ((e.key === 'b' || e.key === 'B') && !game.gameOver) {
+        game.showShop = !game.showShop;
     }
 });
 

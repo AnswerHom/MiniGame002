@@ -28,6 +28,9 @@ const game = {
     showShop: false,
     activePowerups: {}, // 当前激活的增益
     
+    // v1.3.9: 购买确认提示
+    purchaseConfirm: null,
+    
     // v1.2.7: 根据游戏进度调整生成间隔
     getAdjustedSpawnInterval() {
         const elapsed = (Date.now() - this.startTime) / 1000; // 秒
@@ -118,11 +121,11 @@ const game = {
         requestAnimationFrame(gameLoop);
     },
     
-    // v1.0.2: 添加伤害数字
+    // v1.0.2: 添加伤害数字 - v1.3.9: 伤害数字位置优化，稍偏上避免与怪物重叠
     addDamageNumber(x, y, damage, isCrit) {
         this.damageNumbers.push({
             x: x,
-            y: y,
+            y: y - 20,  // v1.3.9: 向上偏移20px
             damage: damage,
             isCrit: isCrit,
             life: 1.0,  // 1秒生命周期
@@ -269,5 +272,35 @@ const game = {
             
             ctx.globalAlpha = 1.0;
         });
+    },
+    
+    // v1.3.9: 更新购买确认提示
+    updatePurchaseConfirm(dt) {
+        if (this.purchaseConfirm) {
+            this.purchaseConfirm.timer -= dt;
+            if (this.purchaseConfirm.timer <= 0) {
+                this.purchaseConfirm = null;
+            }
+        }
+    },
+    
+    // v1.3.9: 绘制购买确认提示
+    drawPurchaseConfirm() {
+        if (!this.purchaseConfirm) return;
+        
+        const centerX = CONFIG.width / 2;
+        const centerY = CONFIG.height / 2;
+        
+        // 背景
+        ctx.fillStyle = 'rgba(0, 200, 0, 0.8)';
+        ctx.fillRect(centerX - 100, centerY - 30, 200, 60);
+        
+        // 文字
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 20px Microsoft YaHei';
+        ctx.textAlign = 'center';
+        ctx.fillText('✓ 购买成功: ' + this.purchaseConfirm.itemName, centerX, centerY + 8);
+        
+        ctx.textAlign = 'left';
     }
 };

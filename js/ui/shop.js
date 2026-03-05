@@ -9,7 +9,7 @@ function getShopItems() {
     ];
 }
 
-// v1.3.6: 购买物品 - v1.3.7: 购买后自动关闭商店
+// v1.3.6: 购买物品 - v1.3.7: 购买后自动关闭商店 - v1.3.9: 购买确认反馈
 function purchaseItem(item) {
     if (game.gold >= item.price) {
         game.gold -= item.price;
@@ -17,6 +17,12 @@ function purchaseItem(item) {
         game.playSound('levelup');
         // v1.3.7: 购买后自动关闭商店
         game.showShop = false;
+        
+        // v1.3.9: 购买成功提示（临时显示在下一帧）
+        game.purchaseConfirm = {
+            itemName: item.name,
+            timer: 1.5  // 显示1.5秒
+        };
     }
 }
 

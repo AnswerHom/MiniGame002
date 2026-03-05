@@ -198,7 +198,7 @@ function drawPauseButton() {
     ctx.textAlign = 'left';
 }
 
-// v1.3.5: 绘制暂停覆盖层（已移除重复定义）
+// v1.3.5: 绘制暂停覆盖层 - v1.3.9: 显示已激活增益
 function drawPauseOverlay() {
     if (!game.paused) return;
     
@@ -208,10 +208,36 @@ function drawPauseOverlay() {
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 48px Microsoft YaHei';
     ctx.textAlign = 'center';
-    ctx.fillText('已暂停', CONFIG.width / 2, CONFIG.height / 2 - 20);
+    ctx.fillText('已暂停', CONFIG.width / 2, CONFIG.height / 2 - 80);
     
     ctx.font = '20px Microsoft YaHei';
-    ctx.fillText('按 ESC 继续', CONFIG.width / 2, CONFIG.height / 2 + 30);
+    ctx.fillText('按 ESC 继续', CONFIG.width / 2, CONFIG.height / 2 - 30);
+    
+    // v1.3.9: 暂停时显示已激活增益
+    const activePowerups = Object.keys(game.activePowerups);
+    if (activePowerups.length > 0) {
+        ctx.fillStyle = '#4CAF50';
+        ctx.font = 'bold 22px Microsoft YaHei';
+        ctx.fillText('🎯 当前激活增益:', CONFIG.width / 2, CONFIG.height / 2 + 20);
+        
+        const shopItems = getShopItems();
+        let yOffset = 55;
+        activePowerups.forEach(powerup => {
+            const remaining = Math.ceil(game.activePowerups[powerup]);
+            const item = shopItems.find(i => i.id === powerup);
+            if (item) {
+                ctx.fillStyle = '#ffd700';
+                ctx.font = '18px Microsoft YaHei';
+                ctx.fillText('• ' + item.name + ': ' + remaining + '秒', CONFIG.width / 2, CONFIG.height / 2 + yOffset);
+                yOffset += 30;
+            }
+        });
+    } else {
+        ctx.fillStyle = '#888';
+        ctx.font = '18px Microsoft YaHei';
+        ctx.fillText('(无激活增益)', CONFIG.width / 2, CONFIG.height / 2 + 60);
+    }
+    
     ctx.textAlign = 'left';
 }
 

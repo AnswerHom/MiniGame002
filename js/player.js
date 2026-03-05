@@ -34,6 +34,10 @@ const player = {
     idleTime: 0,               // 待机时间
     idleFloatOffset: 0,        // 浮动偏移量
     
+    // v1.3.9: debuff视觉效果
+    poisonEffect: 0,            // 中毒效果计时器
+    slowEffect: 0,             // 减速效果计时器
+    
     getRealm() {
         return getRealm(this.level);
     },
@@ -61,6 +65,20 @@ const player = {
         // v1.1.0: 待机动画 - 轻微上下浮动
         this.idleTime += dt;
         this.idleFloatOffset = Math.sin(this.idleTime * 2) * 2; // 2px浮动
+        
+        // v1.3.9: 更新debuff视觉效果计时器
+        if (this.poisonEffect > 0) this.poisonEffect -= dt;
+        if (this.slowEffect > 0) this.slowEffect -= dt;
+        
+        // v1.3.9: 检测debuff状态并更新视觉效果
+        if (this.buffs) {
+            this.buffs.forEach(buff => {
+                if (buff.active) {
+                    if (buff.type === 'poison') this.poisonEffect = 0.5;
+                    if (buff.type === 'slow') this.slowEffect = 0.5;
+                }
+            });
+        }
         
         // 更新相机
         CONFIG.cameraOffset = this.x - 150;
@@ -92,6 +110,10 @@ const player = {
     },
 
     takeDamage(damage) {
+        // v1.3.9: Bug修复 - 无敌模式不减伤
+        if (game.activePowerups.invincible) {
+            return false;
+        }
         this.hp -= damage;
         this.hitFlash = 0.2;
         if (this.hp <= 0) {
@@ -118,6 +140,51 @@ const player = {
     draw() {
         const screenX = this.x - CONFIG.cameraOffset;
         const screenY = this.y + this.idleFloatOffset; // v1.1.0: 浮动效果
+        
+        // v1.3.9: 减速debuff视觉效果 - 蓝色拖尾/冰霜效果
+        if (this.slowEffect > 0) {
+            const time = Date.now() / 100;
+            // 蓝色冰霜光环
+            const gradient = ctx.createRadialGradient(
+                screenX + 16, screenY - 24, 0,
+                screenX + 16, screenY - 24, 40
+            );
+            gradient.addColorStop(0, 'rgba(100, 200, 255, 0.3)');
+            gradient.addColorStop(0.5, 'rgba(100, 200, 255, 0.15)');
+            gradient.addColorStop(1, 'rgba(100, 200, 255, 0)');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(screenX + 16, screenY - 24, 40, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 冰霜粒子效果
+            for (let i = 0; i < 5; i++) {
+                const angle = (time + i * 1.2) % (Math.PI * 2);
+                const radius = 25 + Math.sin(time * 2 + i) * 5;
+                const px = screenX + 16 + Math.cos(angle) * radius;
+                const py = screenY - 24 + Math.sin(angle) * radius;
+                ctx.fillStyle = 'rgba(150, 220, 255, 0.7)';
+                ctx.beginPath();
+                ctx.arc(px, py, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        // v1.3.9: 中毒debuff视觉效果 - 绿色粒子/身体发绿
+        if (this.poisonEffect > 0) {
+            const time = Date.now() / 100;
+            // 绿色毒气环绕
+            for (let i = 0; i < 8; i++) {
+                const angle = (time * 0.5 + i * Math.PI / 4) % (Math.PI * 2);
+                const radius = 20 + Math.sin(time + i) * 8;
+                const px = screenX + 16 + Math.cos(angle) * radius;
+                const py = screenY - 30 + Math.sin(angle) * radius - 10;
+                ctx.fillStyle = `rgba(50, 255, 50, ${0.4 + Math.sin(time * 2 + i) * 0.2})`;
+                ctx.beginPath();
+                ctx.arc(px, py, 3 + Math.sin(time + i) * 1.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
         
         // v1.3.7: 无敌模式视觉效果 - 金色光环
         if (game.activePowerups.invincible) {
