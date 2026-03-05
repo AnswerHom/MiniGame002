@@ -102,9 +102,27 @@ function useItem(itemIndex) {
             backpack.items = backpack.items.filter(i => i.index !== itemIndex);
         }
         return true;
-    } else if (item.type === ITEM_TYPES.WEAPON || item.type === ITEM_TYPES.ARMOR) {
-        // 装备：显示装备提示（实际装备逻辑可后续扩展）
-        game.showMessage('装备: ' + item.name, '#00ff00');
+    } else if (item.type === ITEM_TYPES.WEAPON || item.type === ITEM_TYPES.ARMOR || item.type === EQUIP_TYPES.ACCESSORY) {
+        // v1.7.0: 装备穿戴
+        equipItem(item);
+        // 从背包移除已穿戴的装备
+        backpack.items = backpack.items.filter(i => i.index !== itemIndex);
+        // 重新整理背包索引
+        backpack.items.forEach((i, idx) => i.index = idx);
+        game.showMessage('已穿戴: ' + item.name, '#00ff00');
+        
+        // v1.7.0: 显示装备属性
+        if (item.attrs.atk) {
+            game.showMessage('攻击力+' + item.attrs.atk, '#ff6666');
+        }
+        if (item.attrs.def) {
+            game.showMessage('防御力+' + item.attrs.def, '#6666ff');
+        }
+        if (item.attrs.crit) {
+            game.showMessage('暴击率+' + (item.attrs.crit * 100).toFixed(0) + '%', '#ff66ff');
+        }
+        
+        backpack.selectedItem = null;
         return true;
     }
     
@@ -229,6 +247,76 @@ function drawBackpackUI() {
     const cellSize = 80;
     const cellSpacing = 10;
     
+    // v1.7.0: 装备显示区域
+    const equipAreaX = drawX + drawWidth - 120;
+    const equipAreaY = drawY + 60;
+    const equipAreaWidth = 100;
+    const equipAreaHeight = 180;
+    
+    // 装备区域背景
+    ctx.fillStyle = 'rgba(40, 40, 60, 0.8)';
+    ctx.fillRect(equipAreaX - 10, equipAreaY - 10, equipAreaWidth + 20, equipAreaHeight);
+    ctx.strokeStyle = '#4a5568';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(equipAreaX - 10, equipAreaY - 10, equipAreaWidth + 20, equipAreaHeight);
+    
+    // 装备区域标题
+    ctx.fillStyle = '#aaa';
+    ctx.font = '14px Microsoft YaHei';
+    ctx.textAlign = 'center';
+    ctx.fillText('已穿戴', equipAreaX + equipAreaWidth / 2, equipAreaY + 5);
+    
+    // 绘制已穿戴的装备
+    const equipTypes = [
+        { type: 'weapon', label: '武器', y: equipAreaY + 30 },
+        { type: 'armor', label: '防具', y: equipAreaY + 80 },
+        { type: 'accessory', label: '饰品', y: equipAreaY + 130 }
+    ];
+    
+    game.equipSlots = [];
+    equipTypes.forEach(equip => {
+        const slotX = equipAreaX;
+        const slotY = equip.y;
+        const slotSize = 70;
+        
+        // 装备槽背景
+        ctx.fillStyle = 'rgba(60, 60, 80, 0.8)';
+        ctx.fillRect(slotX, slotY, slotSize, slotSize);
+        ctx.strokeStyle = '#4a5568';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(slotX, slotY, slotSize, slotSize);
+        
+        // 装备槽标签
+        ctx.fillStyle = '#666';
+        ctx.font = '10px Microsoft YaHei';
+        ctx.fillText(equip.label, slotX + slotSize / 2, slotY - 3);
+        
+        // 记录装备槽区域供点击检测
+        game.equipSlots.push({ x: slotX, y: slotY, width: slotSize, height: slotSize, type: equip.type });
+        
+        // 显示已穿戴的装备
+        const equipped = playerEquipment[equip.type];
+        if (equipped) {
+            // 装备图标
+            ctx.font = '32px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(equipped.icon, slotX + slotSize / 2, slotY + slotSize / 2 + 10);
+            
+            // 稀有度边框
+            const rarityColor = RARITY_COLORS[equipped.rarity] || '#ffffff';
+            ctx.strokeStyle = rarityColor;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(slotX + 2, slotY + 2, slotSize - 4, slotSize - 4);
+            
+            // 装备名称
+            ctx.fillStyle = rarityColor;
+            ctx.font = '11px Microsoft YaHei';
+            ctx.fillText(equipped.name.substring(0, 5), slotX + slotSize / 2, slotY + slotSize - 5);
+        }
+    });
+    
+    ctx.textAlign = 'left';
+    
     // 绘制网格
     for (let row = 0; row < gridRows; row++) {
         for (let col = 0; col < gridCols; col++) {
@@ -250,6 +338,13 @@ function drawBackpackUI() {
                 ctx.font = '36px Arial';
                 ctx.textAlign = 'center';
                 ctx.fillText(item.icon, cellX + cellSize / 2, cellY + cellSize / 2 + 12);
+                
+                // v1.7.0: 装备稀有度边框
+                if (item.rarity && RARITY_COLORS[item.rarity]) {
+                    ctx.strokeStyle = RARITY_COLORS[item.rarity];
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(cellX + 2, cellY + 2, cellSize - 4, cellSize - 4);
+                }
                 
                 // 物品数量
                 if (item.count > 1) {
@@ -287,7 +382,9 @@ function drawBackpackUI() {
             ctx.fillStyle = 'rgba(40, 40, 60, 0.9)';
             ctx.fillRect(drawX + 20, detailY, panelWidth - 40, 70);
             
-            ctx.fillStyle = '#fff';
+            // v1.7.0: 稀有度颜色
+            const itemColor = selectedItemData.rarity && RARITY_COLORS[selectedItemData.rarity] ? RARITY_COLORS[selectedItemData.rarity] : '#fff';
+            ctx.fillStyle = itemColor;
             ctx.font = 'bold 16px Microsoft YaHei';
             ctx.textAlign = 'left';
             ctx.fillText(selectedItemData.name, drawX + 30, detailY + 20);
@@ -296,11 +393,27 @@ function drawBackpackUI() {
             ctx.font = '12px Microsoft YaHei';
             ctx.fillText(selectedItemData.desc, drawX + 30, detailY + 40);
             
+            // v1.7.0: 显示装备属性
+            if (selectedItemData.attrs) {
+                let attrText = '';
+                if (selectedItemData.attrs.atk) attrText += ` 攻击+${selectedItemData.attrs.atk}`;
+                if (selectedItemData.attrs.def) attrText += ` 防御+${selectedItemData.attrs.def}`;
+                if (selectedItemData.attrs.spd) attrText += ` 速度+${selectedItemData.attrs.spd}`;
+                if (selectedItemData.attrs.crit) attrText += ` 暴击+${(selectedItemData.attrs.crit * 100).toFixed(0)}%`;
+                if (selectedItemData.attrs.critDmg) attrText += ` 暴伤+${(selectedItemData.attrs.critDmg * 100).toFixed(0)}%`;
+                
+                if (attrText) {
+                    ctx.fillStyle = '#ffd700';
+                    ctx.font = '11px Microsoft YaHei';
+                    ctx.fillText(attrText, drawX + 30, detailY + 55);
+                }
+            }
+            
             // 使用按钮提示
-            ctx.fillStyle = selectedItemData.type === ITEM_TYPES.CONSUMABLE ? '#48bb78' : '#aaa';
+            ctx.fillStyle = selectedItemData.type === ITEM_TYPES.CONSUMABLE ? '#48bb78' : (selectedItemData.rarity ? '#a855f7' : '#aaa');
             ctx.font = '14px Microsoft YaHei';
             ctx.textAlign = 'right';
-            const useText = selectedItemData.type === ITEM_TYPES.CONSUMABLE ? '点击使用' : '点击查看';
+            const useText = selectedItemData.type === ITEM_TYPES.CONSUMABLE ? '点击使用' : '点击穿戴';
             ctx.fillText(useText, drawX + panelWidth - 30, detailY + 20);
         }
     }
@@ -346,6 +459,21 @@ function handleBackpackClick(x, y) {
     const gridStartY = drawY + 70;
     const cellSize = 80;
     const cellSpacing = 10;
+    
+    // v1.7.0: 检查装备槽点击（卸下装备）
+    if (game.equipSlots) {
+        for (const slot of game.equipSlots) {
+            if (x >= slot.x && x <= slot.x + slot.width && y >= slot.y && y <= slot.y + slot.height) {
+                const equipped = playerEquipment[slot.type];
+                if (equipped) {
+                    // 卸下装备
+                    unequipItem(slot.type);
+                    game.showMessage('已卸下: ' + equipped.name, '#ffaa00');
+                }
+                return true;
+            }
+        }
+    }
     
     for (let row = 0; row < gridRows; row++) {
         for (let col = 0; col < gridCols; col++) {

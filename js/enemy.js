@@ -223,6 +223,18 @@ class Enemy {
             game.recordGold(goldDrop);
             // v1.4.6: 金币获取视觉反馈 - 飘字效果
             game.addDamageNumber(this.x + this.width / 2, this.y - this.height, '+' + goldDrop + '💰', false, true);
+            
+            // v1.7.0: 装备掉落
+            const equipDrop = generateEquipmentDrop(this.type, this.level || 1);
+            if (equipDrop) {
+                if (addItemToBackpack(equipDrop)) {
+                    // 显示装备掉落提示
+                    const rarityColor = RARITY_COLORS[equipDrop.rarity] || '#ffffff';
+                    game.addDamageNumber(this.x + this.width / 2, this.y - this.height - 20, equipDrop.icon + ' ' + equipDrop.name, false, false, rarityColor);
+                    game.showMessage('获得装备: ' + equipDrop.name, rarityColor);
+                }
+            }
+            
             // v1.2.7: 怪物死亡音效
             game.playSound('hit');
             // v1.4.0: 添加死亡动画
