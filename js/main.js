@@ -281,8 +281,10 @@ function handleClick(e) {
         const shopItems = getShopItems();
         const itemWidth = 140;
         const itemHeight = 60;
-        const startX = CONFIG.width / 2 - 200;
-        const startY = CONFIG.height / 2 - 100;
+        const centerX = CONFIG.width / 2;
+        const centerY = CONFIG.height / 2;
+        const startX = centerX - 200;
+        const startY = centerY - 60;
         
         shopItems.forEach((item, index) => {
             const row = Math.floor(index / 3);
