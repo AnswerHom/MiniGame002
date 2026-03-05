@@ -175,9 +175,15 @@ class Enemy {
         }
         this.attackCooldown = 1;
         this.isAttacking = true;
-        this.attackAnimTime = 0.3;  // v1.2.4: 攻击动画持续0.3秒
+        // v1.5.8: 攻击动画持续0.45秒（前摇0.15s + 挥动0.2s + 收招0.1s）
+        this.attackAnimTime = 0.45;
         const died = player.takeDamage(this.attack);
-        if (died) game.gameOver = true;
+        if (died) {
+            game.gameOver = true;
+        } else {
+            // v1.5.8: 攻击命中时屏幕轻微震动（振幅3px，持续0.1秒）
+            game.triggerScreenShake(3, 0.1);
+        }
     }
 
     takeDamage(damage) {
@@ -524,12 +530,65 @@ class Enemy {
     }
     
     // v1.2.9: 骷髅兵 - 白色骨架
+    // v1.5.8: 添加三段式攻击动画（、前摇0.15s、挥动0.2s、收招0.1s）
     drawSkeleton(screenX, screenY, floatOffset) {
         // 行走摇摆动画
         const bodySway = Math.sin(this.animTime * 2) * 2;
         
-        // 头部（骷髅头）
+        // v1.5.8: 三段式攻击动画
+        // 阶段：前摇(0-0.15s) → 挥动(0.15-0.35s) → 收招(0.35-0.45s)
+        let attackPhase = 0;
+        let armSwing = 0;
+        let bodyLean = 0;
+        let armRaise = 0;
+        
+        if (this.attackAnimTime > 0) {
+            const totalTime = 0.45; // 总时长0.45秒
+            const timeProgress = 1 - (this.attackAnimTime / totalTime);
+            
+            if (timeProgress < 0.33) {
+                // 前摇阶段：双臂抬起，身体后仰15度
+                attackPhase = 1;
+                armRaise = (timeProgress / 0.33) * 10;
+                bodyLean = (timeProgress / 0.33) * 8;
+            } else if (timeProgress < 0.78) {
+                // 挥动阶段：双臂前伸30度，身体前倾10度
+                attackPhase = 2;
+                const swingProgress = (timeProgress - 0.33) / 0.45;
+                armSwing = Math.sin(swingProgress * Math.PI) * 15;
+                bodyLean = -5;
+            } else {
+                // 收招阶段：双臂收回，身体恢复直立
+                attackPhase = 3;
+                const recoverProgress = (timeProgress - 0.78) / 0.22;
+                armSwing = (1 - recoverProgress) * 8;
+                bodyLean = (1 - recoverProgress) * -3;
+            }
+        }
+        
+        // v1.5.8: 攻击时红色残影效果
+        if (this.attackAnimTime > 0 && attackPhase === 2) {
+            // 绘制红色残影（攻击挥动阶段）
+            ctx.globalAlpha = 0.3;
+            ctx.fillStyle = '#ff0000';
+            // 残影1
+            ctx.beginPath();
+            ctx.arc(screenX + this.size/2 - 3, screenY - 35 + floatOffset, 12, 0, Math.PI * 2);
+            ctx.fill();
+            // 残影2
+            ctx.beginPath();
+            ctx.arc(screenX + this.size/2 + 3, screenY - 35 + floatOffset, 10, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+        }
+        
+        // 头部（骷髅头）- 身体后仰/前倾
         ctx.fillStyle = this.baseColor;
+        ctx.save();
+        ctx.translate(screenX + this.size/2, screenY - 35 + floatOffset);
+        ctx.rotate(bodyLean * Math.PI / 180);
+        ctx.translate(-(screenX + this.size/2), -(screenY - 35 + floatOffset));
+        
         ctx.beginPath();
         ctx.arc(screenX + this.size/2, screenY - 35 + floatOffset, 10, 0, Math.PI * 2);
         ctx.fill();
@@ -550,11 +609,25 @@ class Enemy {
             ctx.fillRect(screenX + this.size/2 - 8, screenY - 22 + i * 6 + floatOffset, 16, 3);
         }
         
-        // 手臂 - 持武器前伸
-        ctx.fillRect(screenX + this.size/2 - 15, screenY - 20 + floatOffset, 12, 4);
-        // 武器（骨剑）
+        // v1.5.8: 手臂 - 攻击时前伸/抬起
+        ctx.fillStyle = this.baseColor;
+        // 左手臂 - 攻击时抬起并前伸
+        const leftArmX = screenX + this.size/2 - 15 - armSwing;
+        const leftArmY = screenY - 20 + floatOffset - armRaise;
+        ctx.fillRect(leftArmX, leftArmY, 12 + armSwing * 0.5, 4);
+        
+        // 右手臂 - 攻击时抬起并前伸
+        const rightArmX = screenX + this.size/2 + 3;
+        const rightArmY = screenY - 20 + floatOffset - armRaise;
+        ctx.fillRect(rightArmX, rightArmY, 12 + armSwing * 0.5, 4);
+        
+        // 武器（骨剑）- 攻击时挥动
         ctx.fillStyle = '#d4d4d4';
-        ctx.fillRect(screenX - 5, screenY - 30 + floatOffset, 4, 20);
+        const swordX = screenX - 5 - armSwing * 1.5;
+        const swordY = screenY - 30 + floatOffset - armRaise * 0.5;
+        ctx.fillRect(swordX, swordY, 4, 20);
+        
+        ctx.restore();
         
         // 腿部
         const legSway = Math.sin(this.animTime * 4) * 3;
