@@ -92,9 +92,14 @@ class Enemy {
             return;
         }
         
-        // v1.2.9: 如果在安全距离外（攻击距离~停止距离之间），停止移动
-        if (absDist < this.stopDistance && absDist >= this.attackDistance) {
+        // v1.2.9: 如果在安全距离和攻击距离之间（不在攻击范围内），停止移动等待
+        if (absDist >= this.attackDistance && absDist < this.stopDistance) {
             return;  // 在安全距离和攻击距离之间时，保持距离等待
+        }
+        
+        // v1.3.1: 如果已在攻击距离内但冷却时间未到，继续等待攻击（不移动）
+        if (absDist < this.attackDistance && this.attackCooldown > 0) {
+            return;  // 在攻击距离内但冷却未好，保持位置等待
         }
         
         // 怪物向玩家移动（玩家在右边则向右，在左边则向左）
