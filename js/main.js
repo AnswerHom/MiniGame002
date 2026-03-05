@@ -35,6 +35,9 @@ function update(dt) {
     // v1.4.3: 屏幕震动更新
     game.updateScreenShake(dt);
     
+    // v1.5.6: 背包动画更新
+    updateBackpackAnim(dt);
+    
     // v1.4.3: 连杀状态更新
     game.updateKillStreak();
     
@@ -168,6 +171,10 @@ function startGame() {
     game.gameOver = false;
     game.damageNumbers = [];
     
+    // v1.5.6: 初始化背包
+    initBackpack();
+    game.backpackAnimProgress = 0;
+    
     // v1.4.3: 初始化统计
     game.totalDamage = 0;
     game.totalGoldEarned = 0;
@@ -266,7 +273,8 @@ function getButtonArea(buttonName) {
         sound: { x: btnPos.x, y: btnPos.y, width: btnSize, height: btnSize },
         help: { x: btnPos.x, y: btnPos.y + btnSize + UI_INTERACTION.buttonSpacing, width: btnSize, height: btnSize },
         pause: { x: btnPos.x, y: btnPos.y + (btnSize + UI_INTERACTION.buttonSpacing) * 2, width: btnSize, height: btnSize },
-        shop: { x: btnPos.x, y: btnPos.y + (btnSize + UI_INTERACTION.buttonSpacing) * 3, width: btnSize, height: btnSize }
+        shop: { x: btnPos.x, y: btnPos.y + (btnSize + UI_INTERACTION.buttonSpacing) * 3, width: btnSize, height: btnSize },
+        backpack: { x: btnPos.x, y: btnPos.y + (btnSize + UI_INTERACTION.buttonSpacing) * 4, width: btnSize, height: btnSize }
     };
     
     return buttonAreas[buttonName];
@@ -378,6 +386,22 @@ function handleClick(e) {
             triggerButtonFeedback('shop');
             game.showShop = !game.showShop;
         }
+        return;
+    }
+    
+    // v1.5.6: 背包按钮 - 使用扩展点击区域
+    const backpackArea = getButtonArea('backpack');
+    if (isPointInButton(clickX, clickY, backpackArea)) {
+        if (!game.paused && !game.showShop && !backpack.isOpen) {
+            triggerButtonFeedback('backpack');
+            toggleBackpack();
+        }
+        return;
+    }
+    
+    // v1.5.6: 背包界面点击处理
+    if (backpack.isOpen) {
+        handleBackpackClick(clickX, clickY);
         return;
     }
     

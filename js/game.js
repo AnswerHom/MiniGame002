@@ -201,6 +201,10 @@ const game = {
         this.killStreak = 0;
         this.lastKillTime = 0;
         
+        // v1.5.6: 初始化背包
+        initBackpack();
+        this.backpackAnimProgress = 0;
+        
         player.x = 100;
         player.hp = player.maxHp;
         player.exp = 0;

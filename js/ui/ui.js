@@ -102,6 +102,12 @@ function drawUI() {
     
     // v1.3.6: 商店界面
     drawShopUI();
+    
+    // v1.5.6: 背包按钮
+    drawBackpackButton();
+    
+    // v1.5.6: 背包界面
+    drawBackpackUI();
 }
 
 // v1.3.4: 绘制音效开关按钮 - v1.5.2: 使用布局规范，按钮尺寸≥44px
