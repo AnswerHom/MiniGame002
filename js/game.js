@@ -31,7 +31,8 @@ const game = {
         timer: 0,
         offsetX: 0,
         offsetY: 0
-    }
+    },
+    
     // v1.2.7: 音效系统
     soundEnabled: true,
     // v1.2.8: AudioContext初始化（延迟到用户交互）
