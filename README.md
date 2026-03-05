@@ -10,9 +10,11 @@ js/
 ├── config.js   # 配置与常量
 ├── game.js    # 游戏状态
 ├── player.js  # 玩家模块
-├── enemy.js   # 怪物模块
+├── buff.js    # BUFF 系统
 ├── scene.js   # 场景模块
-├── ui.js      # UI界面
+├── enemy.js   # 怪物模块
+├── ui/        # UI 界面目录
+│   └── ui.js  # UI 界面
 └── main.js    # 游戏主循环
 ```
 
@@ -22,10 +24,11 @@ js/
 <script src="js/config.js"></script>   <!-- 1. 配置 + canvas -->
 <script src="js/game.js"></script>    <!-- 2. 游戏状态 -->
 <script src="js/player.js"></script>   <!-- 3. 玩家 -->
-<script src="js/scene.js"></script>    <!-- 4. 场景 -->
-<script src="js/enemy.js"></script>    <!-- 5. 怪物 -->
-<script src="js/ui.js"></script>        <!-- 6. UI -->
-<script src="js/main.js"></script>      <!-- 7. 主循环 -->
+<script src="js/buff.js"></script>     <!-- 4. BUFF 系统 -->
+<script src="js/scene.js"></script>    <!-- 5. 场景 -->
+<script src="js/enemy.js"></script>    <!-- 6. 怪物 -->
+<script src="js/ui/ui.js"></script>    <!-- 7. UI -->
+<script src="js/main.js"></script>      <!-- 8. 主循环 -->
 ```
 
 **规则**：后面的文件可以调用前面定义的函数/变量，前面的文件不能调用后面的。
