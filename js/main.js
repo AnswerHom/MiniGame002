@@ -269,9 +269,34 @@ function handleClick(e) {
         return;
     }
     
-    // v1.3.6: 商店界面显示中，点击关闭
+    // v1.3.6: 商店界面显示中
     if (game.showShop) {
-        game.showShop = false;
+        // 先检查是否点击了物品
+        const shopItems = getShopItems();
+        const itemWidth = 140;
+        const itemHeight = 60;
+        const centerX = CONFIG.width / 2;
+        const centerY = CONFIG.height / 2;
+        const startX = centerX - 200;
+        const startY = centerY - 60;
+        
+        let itemClicked = false;
+        shopItems.forEach((item, index) => {
+            const row = Math.floor(index / 3);
+            const col = index % 3;
+            const itemX = startX + col * (itemWidth + 20);
+            const itemY = startY + row * (itemHeight + 20);
+            
+            if (clickX >= itemX && clickX <= itemX + itemWidth && clickY >= itemY && clickY <= itemY + itemHeight) {
+                purchaseItem(item);
+                itemClicked = true;
+            }
+        });
+        
+        // 如果没点中物品，则关闭商店
+        if (!itemClicked) {
+            game.showShop = false;
+        }
         return;
     }
     
@@ -316,28 +341,6 @@ function handleClick(e) {
             game.restart();
             return;
         }
-    }
-    
-    // v1.3.6: 商店物品购买
-    if (game.showShop && !game.gameOver && !game.paused) {
-        const shopItems = getShopItems();
-        const itemWidth = 140;
-        const itemHeight = 60;
-        const centerX = CONFIG.width / 2;
-        const centerY = CONFIG.height / 2;
-        const startX = centerX - 200;
-        const startY = centerY - 60;
-        
-        shopItems.forEach((item, index) => {
-            const row = Math.floor(index / 3);
-            const col = index % 3;
-            const itemX = startX + col * (itemWidth + 20);
-            const itemY = startY + row * (itemHeight + 20);
-            
-            if (clickX >= itemX && clickX <= itemX + itemWidth && clickY >= itemY && clickY <= itemY + itemHeight) {
-                purchaseItem(item);
-            }
-        });
     }
     
     if (game.gameOver) {
