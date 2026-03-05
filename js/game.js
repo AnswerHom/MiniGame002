@@ -121,7 +121,7 @@ const game = {
         requestAnimationFrame(gameLoop);
     },
     
-    // v1.0.2: 添加伤害数字 - v1.3.9: 伤害数字位置优化，稍偏上避免与怪物重叠
+    // v1.4.0: 暴击视觉反馈 - 红色+更大字号
     addDamageNumber(x, y, damage, isCrit) {
         this.damageNumbers.push({
             x: x,
@@ -133,7 +133,7 @@ const game = {
         });
     },
     
-    // v1.0.2: 更新伤害数字
+    // v1.0.2: 更新伤害数字 - v1.4.0: 暴击用红色+更大字号
     updateDamageNumbers(dt) {
         this.damageNumbers = this.damageNumbers.filter(dn => {
             dn.y += dn.vy * dt;
@@ -142,14 +142,15 @@ const game = {
         });
     },
     
-    // v1.0.2: 绘制伤害数字
+    // v1.0.2: 绘制伤害数字 - v1.4.0: 暴击显示为红色+更大字号
     drawDamageNumbers() {
         this.damageNumbers.forEach(dn => {
             const screenX = dn.x - CONFIG.cameraOffset;
-            ctx.font = dn.isCrit ? 'bold 18px Microsoft YaHei' : '14px Microsoft YaHei';
+            // v1.4.0: 暴击使用红色和更大字号
+            ctx.font = dn.isCrit ? 'bold 22px Microsoft YaHei' : '14px Microsoft YaHei';
             ctx.textAlign = 'center';
-            // v1.0.2: 暴击伤害显示为金色
-            ctx.fillStyle = dn.isCrit ? '#ffd700' : '#fff';
+            // v1.4.0: 暴击伤害显示为红色
+            ctx.fillStyle = dn.isCrit ? '#ff3333' : '#fff';
             ctx.globalAlpha = dn.life;
             ctx.fillText(dn.damage, screenX, dn.y);
             ctx.globalAlpha = 1.0;
@@ -193,6 +194,60 @@ const game = {
                 ctx.arc(p.x - CONFIG.cameraOffset, p.y, p.size, 0, Math.PI * 2);
                 ctx.fill();
             });
+            ctx.globalAlpha = 1.0;
+        });
+    },
+    
+    // v1.4.0: 敌人死亡动画系统
+    deathEffects: [],
+    
+    addDeathEffect(enemy) {
+        this.deathEffects.push({
+            x: enemy.x,
+            y: enemy.y - enemy.height / 2,
+            width: enemy.width,
+            height: enemy.height,
+            type: enemy.type,
+            realmColor: enemy.realmColor,
+            life: 0.3,  // v1.4.0: 0.3秒淡出
+            maxLife: 0.3
+        });
+    },
+    
+    updateDeathEffects(dt) {
+        this.deathEffects = this.deathEffects.filter(effect => {
+            effect.life -= dt;
+            return effect.life > 0;
+        });
+    },
+    
+    drawDeathEffects() {
+        this.deathEffects.forEach(effect => {
+            const screenX = effect.x - CONFIG.cameraOffset;
+            const progress = 1 - (effect.life / effect.maxLife);
+            
+            // v1.4.0: 淡出效果
+            ctx.globalAlpha = effect.life / effect.maxLife;
+            
+            // 绘制简化的死亡形态（淡出）
+            ctx.fillStyle = effect.realmColor;
+            ctx.beginPath();
+            ctx.arc(screenX + effect.width/2, effect.y - effect.height/2, 
+                    (effect.width/2) * (1 + progress * 0.5), 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 粒子飞散效果
+            ctx.fillStyle = effect.realmColor;
+            for (let i = 0; i < 6; i++) {
+                const angle = (i / 6) * Math.PI * 2;
+                const dist = progress * 30;
+                const px = screenX + effect.width/2 + Math.cos(angle) * dist;
+                const py = effect.y + Math.sin(angle) * dist;
+                ctx.beginPath();
+                ctx.arc(px, py, 3 * (1 - progress), 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
             ctx.globalAlpha = 1.0;
         });
     },

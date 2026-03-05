@@ -1,28 +1,44 @@
 // ===== v1.3.6 商店模块 =====
 
-// v1.3.6: 商店物品数据
+// v1.4.0: 生命药水回复量
+const HEALTH_POTION_VALUE = 15;
+
+// v1.3.6: 商店物品数据 - v1.4.0: 添加生命药水
 function getShopItems() {
     return [
         { id: 'doubleAttack', name: '攻击力翻倍', desc: '30秒内攻击力x2', price: 10, duration: 30 },
         { id: 'quickGold', name: '金币加成', desc: '30秒内金币x2', price: 8, duration: 30 },
-        { id: 'invincible', name: '无敌模式', desc: '10秒内不受伤害', price: 15, duration: 10 }
+        { id: 'invincible', name: '无敌模式', desc: '10秒内不受伤害', price: 15, duration: 10 },
+        { id: 'healthPotion', name: '生命药水', desc: '立即恢复15点生命', price: 5, duration: 0 }  // v1.4.0: 新增
     ];
 }
 
-// v1.3.6: 购买物品 - v1.3.7: 购买后自动关闭商店 - v1.3.9: 购买确认反馈
+// v1.3.6: 购买物品 - v1.3.7: 购买后自动关闭商店 - v1.3.9: 购买确认反馈 - v1.4.0: 生命药水立即回复
 function purchaseItem(item) {
     if (game.gold >= item.price) {
         game.gold -= item.price;
-        game.activatePowerup(item.id, item.duration);
-        game.playSound('levelup');
-        // v1.3.7: 购买后自动关闭商店
-        game.showShop = false;
         
-        // v1.3.9: 购买成功提示（临时显示在下一帧）
-        game.purchaseConfirm = {
-            itemName: item.name,
-            timer: 1.5  // 显示1.5秒
-        };
+        // v1.4.0: 生命药水立即回复生命
+        if (item.id === 'healthPotion') {
+            player.hp = Math.min(player.hp + HEALTH_POTION_VALUE, player.maxHp);
+            game.playSound('levelup');
+            // v1.4.0: 购买成功提示
+            game.purchaseConfirm = {
+                itemName: item.name + ' +' + HEALTH_POTION_VALUE + 'HP',
+                timer: 1.5
+            };
+        } else {
+            game.activatePowerup(item.id, item.duration);
+            game.playSound('levelup');
+            // v1.3.7: 购买后自动关闭商店
+            game.showShop = false;
+            
+            // v1.3.9: 购买成功提示（临时显示在下一帧）
+            game.purchaseConfirm = {
+                itemName: item.name,
+                timer: 1.5  // 显示1.5秒
+            };
+        }
     }
 }
 

@@ -48,6 +48,11 @@ function drawUI() {
     ctx.fillStyle = '#ffd700';
     ctx.fillText('💰 ' + game.gold, 130, 80);
     
+    // v1.4.0: 关卡进度显示
+    const wave = Math.floor(player.x / 1000) + 1;
+    ctx.fillStyle = '#a855f7';
+    ctx.fillText('第 ' + wave + ' 波', 20, 100);
+    
     // 场景名称
     const scene = getScene(player.x);
     ctx.fillStyle = '#aaa';

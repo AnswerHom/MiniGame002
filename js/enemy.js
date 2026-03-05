@@ -134,15 +134,27 @@ class Enemy {
             this.alive = false;
             player.exp += this.exp;
             game.killCount++;
-            // v1.3.5: 金币掉落 (1-5金币，根据怪物等级)
+            // v1.4.0: 金币掉落平衡调整 - 根据怪物境界和等级调整
+            // 练气: 1-4金币, 筑基: 2-6金币, 金丹: 3-8金币
+            let baseGold = 1;
+            let maxGold = 4;
+            if (this.realm === '筑基') {
+                baseGold = 2;
+                maxGold = 6;
+            } else if (this.realm === '金丹') {
+                baseGold = 3;
+                maxGold = 8;
+            }
+            let goldDrop = Math.floor(baseGold + Math.random() * (maxGold - baseGold + 1));
             // v1.3.6: 金币加成支持
-            let goldDrop = Math.floor(1 + Math.random() * 5);
             if (game.activePowerups.quickGold) {
                 goldDrop *= 2;
             }
             game.gold += goldDrop;
             // v1.2.7: 怪物死亡音效
             game.playSound('hit');
+            // v1.4.0: 添加死亡动画
+            game.addDeathEffect(this);
             return true;
         }
         // v1.2.7: 受击音效

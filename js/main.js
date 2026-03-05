@@ -17,6 +17,9 @@ function update(dt) {
     // v1.2.8: 升级特效更新
     game.updateLevelUpEffects(dt);
     
+    // v1.4.0: 敌人死亡动画更新
+    game.updateDeathEffects(dt);
+    
     // v1.3.6: 增益效果更新
     game.updatePowerups(dt);
     
@@ -81,6 +84,9 @@ function draw() {
     
     // v1.2.8: 绘制升级特效
     game.drawLevelUpEffects();
+    
+    // v1.4.0: 绘制敌人死亡动画
+    game.drawDeathEffects();
     
     // 绘制UI
     drawUI();
