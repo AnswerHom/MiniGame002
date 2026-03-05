@@ -58,7 +58,7 @@ const game = {
         steps: [
             { text: '欢迎来到修仙世界！', duration: 2000 },
             { text: '主角会自动前进和攻击', duration: 2000 },
-            { text: '按 空格键 释放技能', duration: 2000 },
+            { text: '主角会自动战斗', duration: 2000 },
             { text: '按 B 键 打开商店', duration: 2000 },
             { text: '按 ESC 键 暂停游戏', duration: 2000 },
             { text: '祝您游戏愉快！', duration: 2000 }
