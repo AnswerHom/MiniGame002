@@ -24,9 +24,17 @@ function drawUI() {
     ctx.fillStyle = '#fff';
     ctx.fillText(player.hp + '/' + player.maxHp, 130, 44);
     
-    // 攻击
+    // 攻击 - v1.3.7: 显示攻击力增益
     ctx.fillStyle = '#ffd700';
-    ctx.fillText('攻击: ' + player.attack, 20, 60);
+    let attackText = '攻击: ' + player.attack;
+    // v1.3.7: 如果有攻击力增益，显示原始攻击力
+    if (game.activePowerups.doubleAttack) {
+        const originalAttack = Math.floor(player.attack / 2);
+        attackText = '攻击: ' + originalAttack + '→' + player.attack;
+        // v1.3.7: 攻击力增益高亮显示
+        ctx.fillStyle = '#00ff00';
+    }
+    ctx.fillText(attackText, 20, 60);
     
     // 击杀
     ctx.fillStyle = '#ff6666';
@@ -216,12 +224,14 @@ function getShopItems() {
     ];
 }
 
-// v1.3.6: 购买物品
+// v1.3.6: 购买物品 - v1.3.7: 购买后自动关闭商店
 function purchaseItem(item) {
     if (game.gold >= item.price) {
         game.gold -= item.price;
         game.activatePowerup(item.id, item.duration);
         game.playSound('levelup');
+        // v1.3.7: 购买后自动关闭商店
+        game.showShop = false;
     }
 }
 

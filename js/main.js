@@ -241,9 +241,11 @@ function handleClick(e) {
         return;
     }
     
-    // v1.3.6: 商店按钮 (x: width-50, y: 170)
+    // v1.3.6: 商店按钮 (x: width-50, y: 170) - v1.3.7: 暂停时禁止打开商店
     if (clickX >= CONFIG.width - 50 && clickX <= CONFIG.width - 20 && clickY >= 170 && clickY <= 200) {
-        game.showShop = !game.showShop;
+        if (!game.paused) {
+            game.showShop = !game.showShop;
+        }
         return;
     }
     

@@ -96,8 +96,12 @@ const game = {
         }
     },
     
-    // v1.0.8: 重新开始
+    // v1.0.8: 重新开始 - v1.3.7: 游戏结束后状态重置
     restart() {
+        // v1.3.7: 游戏结束时清除所有增益效果
+        this.activePowerups = {};
+        player.attack = 10; // 重置攻击力
+        
         this.state = 'playing';
         this.gameOver = false;
         this.enemies = [];

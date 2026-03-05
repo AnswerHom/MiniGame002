@@ -119,6 +119,34 @@ const player = {
         const screenX = this.x - CONFIG.cameraOffset;
         const screenY = this.y + this.idleFloatOffset; // v1.1.0: 浮动效果
         
+        // v1.3.7: 无敌模式视觉效果 - 金色光环
+        if (game.activePowerups.invincible) {
+            const time = Date.now() / 100;
+            const haloRadius = 35 + Math.sin(time) * 5;
+            
+            // 外层光环
+            const gradient = ctx.createRadialGradient(
+                screenX + 16, screenY - 30, 0,
+                screenX + 16, screenY - 30, haloRadius
+            );
+            gradient.addColorStop(0, 'rgba(255, 215, 0, 0.6)');
+            gradient.addColorStop(0.5, 'rgba(255, 215, 0, 0.3)');
+            gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(screenX + 16, screenY - 30, haloRadius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 闪烁效果
+            if (Math.floor(time) % 2 === 0) {
+                ctx.strokeStyle = '#ffd700';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(screenX + 16, screenY - 30, 30, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+        
         // 受击闪烁效果
         if (this.hitFlash > 0 && Math.floor(this.hitFlash * 20) % 2 === 0) {
             ctx.globalAlpha = 0.5;
