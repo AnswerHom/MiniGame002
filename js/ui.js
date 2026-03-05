@@ -36,6 +36,10 @@ function drawUI() {
     ctx.fillStyle = '#00ffff';
     ctx.fillText('距离: ' + Math.floor(player.x / 100) + 'm', 20, 80);
     
+    // v1.3.5: 金币显示
+    ctx.fillStyle = '#ffd700';
+    ctx.fillText('💰 ' + game.gold, 130, 80);
+    
     // 场景名称
     const scene = getScene(player.x);
     ctx.fillStyle = '#aaa';
@@ -51,6 +55,12 @@ function drawUI() {
     
     // v1.3.4: 帮助信息
     drawHelpInfo();
+    
+    // v1.3.5: 暂停按钮
+    drawPauseButton();
+    
+    // v1.3.5: 暂停覆盖层
+    drawPauseOverlay();
 }
 
 // v1.3.4: 绘制音效开关按钮
@@ -123,11 +133,12 @@ function drawHelpInfo() {
     const lines = [
         '• 这是一款自动挂机游戏',
         '• 角色会自动向右移动并战斗',
-        '• 击败怪物获得经验，升级提升属性',
-        '• 境界越高，怪物越强',
-        '• 点击屏幕左下角按钮开关音效',
-        '• 首次点击开始游戏',
-        '• 游戏结束后点击重新开始',
+        '• 击败怪物获得经验和金币',
+        '• 升级提升属性，境界越高怪物越强',
+        '• 点击右上角按钮开关音效/帮助',
+        '• 按ESC或点击暂停按钮暂停游戏',
+        '• 支持触屏操作',
+        '• 游戏结束后点击再来一局',
     ];
     
     lines.forEach(line => {
@@ -138,5 +149,54 @@ function drawHelpInfo() {
     ctx.textAlign = 'center';
     ctx.fillStyle = '#aaa';
     ctx.fillText('点击任意位置关闭', centerX, y + 20);
+    ctx.textAlign = 'left';
+}
+
+// v1.3.5: 绘制金币显示
+function drawGoldDisplay() {
+    ctx.fillStyle = '#ffd700';
+    ctx.font = '16px Microsoft YaHei';
+    ctx.textAlign = 'left';
+    ctx.fillText('💰 ' + game.gold, 20, 100);
+    ctx.textAlign = 'left';
+}
+
+// v1.3.5: 绘制暂停按钮
+function drawPauseButton() {
+    const btnX = CONFIG.width - 50;
+    const btnY = 130;
+    const btnSize = 30;
+    
+    // 按钮背景
+    ctx.fillStyle = '#4a5568';
+    ctx.fillRect(btnX, btnY, btnSize, btnSize);
+    
+    // 按钮边框
+    ctx.strokeStyle = '#718096';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(btnX, btnY, btnSize, btnSize);
+    
+    // 暂停图标
+    ctx.fillStyle = '#fff';
+    ctx.font = '14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('⏸', btnX + btnSize/2, btnY + 20);
+    ctx.textAlign = 'left';
+}
+
+// v1.3.5: 绘制暂停覆盖层
+function drawPauseOverlay() {
+    if (!game.paused) return;
+    
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
+    
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 48px Microsoft YaHei';
+    ctx.textAlign = 'center';
+    ctx.fillText('已暂停', CONFIG.width / 2, CONFIG.height / 2 - 20);
+    
+    ctx.font = '20px Microsoft YaHei';
+    ctx.fillText('按 ESC 继续', CONFIG.width / 2, CONFIG.height / 2 + 30);
     ctx.textAlign = 'left';
 }

@@ -11,6 +11,7 @@ const game = {
     spawnInterval: 3000,
     minSpawnInterval: 1500,
     killCount: 0,
+    gold: 0,  // v1.3.5: 金币
     startTime: 0,  // v1.2.7: 记录开局时间
     // v1.2.7: 音效系统
     soundEnabled: true,
@@ -19,6 +20,9 @@ const game = {
     audioInitialized: false,
     // v1.3.4: 帮助界面显示
     showHelp: false,
+    
+    // v1.3.5: 暂停状态
+    paused: false,
     
     // v1.2.7: 根据游戏进度调整生成间隔
     getAdjustedSpawnInterval() {
@@ -94,6 +98,7 @@ const game = {
         this.gameOver = false;
         this.enemies = [];
         this.killCount = 0;
+        this.gold = 0;  // v1.3.5: 重置金币
         this.spawnTimer = 0;
         this.damageNumbers = [];
         player.x = 100;
