@@ -41,6 +41,9 @@ function update(dt) {
     // v1.8.0: 技能系统更新
     updateSkills(dt);
     
+    // v1.9.0: 剧情系统更新
+    updateStories(dt);
+    
     // v1.4.3: 连杀状态更新
     game.updateKillStreak();
     
@@ -73,6 +76,11 @@ function update(dt) {
     
     // 玩家根据是否有敌人在攻击范围内决定是否移动
     player.isMoving = !hasEnemyInRange;
+    
+    // v1.9.0: 检查剧情触发
+    if (!storySystem.active) {
+        storySystem.checkTrigger(player.distance);
+    }
     
     // 清理死亡怪物
     game.enemies = game.enemies.filter(e => e.alive);
@@ -127,6 +135,9 @@ function draw() {
     // v1.4.6: 绘制新手引导
     game.drawGuide();
     
+    // v1.9.0: 绘制剧情系统
+    drawStories();
+    
     // 恢复画布（取消震动偏移）
     ctx.restore();
     
@@ -180,6 +191,9 @@ function startGame() {
     
     // v1.8.0: 初始化技能系统
     initSkills();
+    
+    // v1.9.0: 初始化剧情系统
+    storySystem.init();
     
     // v1.4.3: 初始化统计
     game.totalDamage = 0;
@@ -299,8 +313,21 @@ function triggerButtonFeedback(buttonName) {
     }
 }
 
-// v1.3.5: 处理点击/触屏事件 - v1.3.6: 合并统一处理 - v1.5.2: 使用布局规范
+// v1.3.5: 处理点击/触屏事件 - v1.3.6: 合并统一处理 - v1.5.2: 使用布局规范 - v1.9.0: 添加剧情点击处理
 function handleClick(e) {
+    // v1.9.0: 剧情系统点击处理
+    if (storySystem.active) {
+        const rect = gameCanvas.getBoundingClientRect();
+        const scaleX = gameCanvas.width / rect.width;
+        const scaleY = gameCanvas.height / rect.height;
+        const clickX = (e.clientX - rect.left) * scaleX;
+        const clickY = (e.clientY - rect.top) * scaleY;
+        
+        if (storySystem.handleClick(clickX, clickY)) {
+            return;
+        }
+    }
+    
     // v1.2.8: 首次交互时初始化AudioContext
     game.initAudio();
     
