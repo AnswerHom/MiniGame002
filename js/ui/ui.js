@@ -69,6 +69,12 @@ function drawUI() {
     
     // v1.3.5: 暂停覆盖层
     drawPauseOverlay();
+    
+    // v1.3.6: 商店按钮
+    drawShopButton();
+    
+    // v1.3.6: 商店界面
+    drawShopUI();
 }
 
 // v1.3.4: 绘制音效开关按钮
