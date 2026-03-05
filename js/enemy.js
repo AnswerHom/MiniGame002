@@ -115,6 +115,10 @@ class Enemy {
     }
 
     attackPlayer() {
+        // v1.3.6: 无敌模式
+        if (game.activePowerups.invincible) {
+            return;
+        }
         this.attackCooldown = 1;
         this.isAttacking = true;
         this.attackAnimTime = 0.3;  // v1.2.4: 攻击动画持续0.3秒
@@ -131,7 +135,11 @@ class Enemy {
             player.exp += this.exp;
             game.killCount++;
             // v1.3.5: 金币掉落 (1-5金币，根据怪物等级)
-            const goldDrop = Math.floor(1 + Math.random() * 5);
+            // v1.3.6: 金币加成支持
+            let goldDrop = Math.floor(1 + Math.random() * 5);
+            if (game.activePowerups.quickGold) {
+                goldDrop *= 2;
+            }
             game.gold += goldDrop;
             // v1.2.7: 怪物死亡音效
             game.playSound('hit');

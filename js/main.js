@@ -13,15 +13,20 @@ function update(dt) {
     // v1.2.8: 升级特效更新
     game.updateLevelUpEffects(dt);
     
+    // v1.3.6: 增益效果更新
+    game.updatePowerups(dt);
+    
     // 玩家更新
     player.update(dt);
     
-    // 怪物生成 - v1.2.7: 使用动态生成间隔
-    game.spawnTimer += dt * 1000;
-    const currentInterval = game.getAdjustedSpawnInterval();
-    if (game.spawnTimer >= currentInterval) {
-        spawnEnemy();
-        game.spawnTimer = 0;
+    // v1.2.7: 怪物生成 - v1.3.6: 暂停时停止生成
+    if (!game.paused) {
+        game.spawnTimer += dt * 1000;
+        const currentInterval = game.getAdjustedSpawnInterval();
+        if (game.spawnTimer >= currentInterval) {
+            spawnEnemy();
+            game.spawnTimer = 0;
+        }
     }
     
     // 怪物更新
@@ -122,38 +127,10 @@ function startGame() {
     requestAnimationFrame(gameLoop);
 }
 
-// v1.2.2: 点击重新开始
+// v1.2.2: 点击重新开始 - v1.3.6: 统一使用handleClick
 const gameCanvas = document.getElementById('gameCanvas');
 gameCanvas.addEventListener('click', function(e) {
-    // v1.2.8: 首次交互时初始化AudioContext
-    game.initAudio();
-    
-    // v1.3.4: 如果帮助界面显示中，点击关闭
-    if (game.showHelp) {
-        game.showHelp = false;
-        return;
-    }
-    
-    // v1.3.4: 检查是否点击了音效开关按钮
-    const rect = gameCanvas.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const clickY = e.clientY - rect.top;
-    
-    // 音效开关按钮 (x: width-50, y: 50)
-    if (clickX >= CONFIG.width - 50 && clickX <= CONFIG.width - 20 && clickY >= 50 && clickY <= 80) {
-        game.soundEnabled = !game.soundEnabled;
-        return;
-    }
-    
-    // 帮助按钮 (x: width-50, y: 90)
-    if (clickX >= CONFIG.width - 50 && clickX <= CONFIG.width - 20 && clickY >= 90 && clickY <= 120) {
-        game.showHelp = true;
-        return;
-    }
-    
-    if (game.gameOver) {
-        game.restart();
-    }
+    handleClick(e);
 });
 
 // v1.2.8: 键盘交互时也初始化AudioContext
@@ -197,70 +174,30 @@ function drawRestartButton() {
     ctx.textAlign = 'left';
 }
 
-// v1.3.5: 绘制暂停按钮
-function drawPauseButton() {
-    const btnX = CONFIG.width - 50;
-    const btnY = 130;
-    const btnSize = 30;
-    
-    // 按钮背景
-    ctx.fillStyle = '#4a5568';
-    ctx.fillRect(btnX, btnY, btnSize, btnSize);
-    
-    // 按钮边框
-    ctx.strokeStyle = '#718096';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(btnX, btnY, btnSize, btnSize);
-    
-    // 暂停图标
-    ctx.fillStyle = '#fff';
-    ctx.font = '14px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('⏸', btnX + btnSize/2, btnY + 20);
-    ctx.textAlign = 'left';
-}
-
-// v1.3.5: 绘制暂停覆盖层
-function drawPauseOverlay() {
-    if (!game.paused) return;
-    
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
-    
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 48px Microsoft YaHei';
-    ctx.textAlign = 'center';
-    ctx.fillText('已暂停', CONFIG.width / 2, CONFIG.height / 2 - 20);
-    
-    ctx.font = '20px Microsoft YaHei';
-    ctx.fillText('按 ESC 继续', CONFIG.width / 2, CONFIG.height / 2 + 30);
-    ctx.textAlign = 'left';
-}
-
-// v1.3.5: 触屏支持
+// v1.3.5: 触屏支持 - v1.3.6: 统一使用handleClick
 gameCanvas.addEventListener('touchstart', function(e) {
     e.preventDefault();
     
     // 获取触屏坐标
     const touch = e.touches[0];
     const rect = gameCanvas.getBoundingClientRect();
-    const touchX = touch.clientX - rect.left;
-    const touchY = touch.clientY - rect.top;
-    
-    // 转换为点击事件
-    const mockEvent = {
-        clientX: touch.clientX,
-        clientY: touch.clientY
-    };
     
     // 复用点击处理逻辑
-    handleClick(mockEvent, touchX, touchY);
+    handleClick({
+        clientX: touch.clientX,
+        clientY: touch.clientY
+    });
 }, { passive: false });
 
-// v1.3.5: 处理点击/触屏事件
-function handleClick(e, inputX, inputX2) {
-    // 首次交互时初始化AudioContext
+// v1.3.5: 处理点击/触屏事件 - v1.3.6: 合并统一处理
+function handleClick(e) {
+    // v1.2.8: 首次交互时初始化AudioContext
     game.initAudio();
+    
+    // 获取坐标
+    const rect = gameCanvas.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
     
     // 如果暂停中，点击继续游戏
     if (game.paused) {
@@ -276,10 +213,11 @@ function handleClick(e, inputX, inputX2) {
         return;
     }
     
-    // 获取坐标
-    const rect = gameCanvas.getBoundingClientRect();
-    const clickX = inputX2 !== undefined ? inputX2 : e.clientX - rect.left;
-    const clickY = inputX !== undefined ? inputX : e.clientY - rect.top;
+    // v1.3.6: 商店界面显示中，点击关闭
+    if (game.showShop) {
+        game.showShop = false;
+        return;
+    }
     
     // 音效开关按钮 (x: width-50, y: 50)
     if (clickX >= CONFIG.width - 50 && clickX <= CONFIG.width - 20 && clickY >= 50 && clickY <= 80) {
@@ -303,6 +241,12 @@ function handleClick(e, inputX, inputX2) {
         return;
     }
     
+    // v1.3.6: 商店按钮 (x: width-50, y: 170)
+    if (clickX >= CONFIG.width - 50 && clickX <= CONFIG.width - 20 && clickY >= 170 && clickY <= 200) {
+        game.showShop = !game.showShop;
+        return;
+    }
+    
     // v1.3.5: 游戏结束时的再来一局按钮
     if (game.gameOver) {
         const btnWidth = 160;
@@ -314,6 +258,26 @@ function handleClick(e, inputX, inputX2) {
             game.restart();
             return;
         }
+    }
+    
+    // v1.3.6: 商店物品购买
+    if (game.showShop && !game.gameOver && !game.paused) {
+        const shopItems = getShopItems();
+        const itemWidth = 140;
+        const itemHeight = 60;
+        const startX = CONFIG.width / 2 - 200;
+        const startY = CONFIG.height / 2 - 100;
+        
+        shopItems.forEach((item, index) => {
+            const row = Math.floor(index / 3);
+            const col = index % 3;
+            const itemX = startX + col * (itemWidth + 20);
+            const itemY = startY + row * (itemHeight + 20);
+            
+            if (clickX >= itemX && clickX <= itemX + itemWidth && clickY >= itemY && clickY <= itemY + itemHeight) {
+                purchaseItem(item);
+            }
+        });
     }
     
     if (game.gameOver) {

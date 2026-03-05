@@ -24,6 +24,10 @@ const game = {
     // v1.3.5: 暂停状态
     paused: false,
     
+    // v1.3.6: 金币商店系统
+    showShop: false,
+    activePowerups: {}, // 当前激活的增益
+    
     // v1.2.7: 根据游戏进度调整生成间隔
     getAdjustedSpawnInterval() {
         const elapsed = (Date.now() - this.startTime) / 1000; // 秒
@@ -188,6 +192,30 @@ const game = {
     
     // v1.2.8: 升级特效
     levelUpEffects: [],
+    
+    // v1.3.6: 更新增益效果
+    updatePowerups(dt) {
+        Object.keys(this.activePowerups).forEach(key => {
+            if (this.activePowerups[key] > 0) {
+                this.activePowerups[key] -= dt;
+                if (this.activePowerups[key] <= 0) {
+                    delete this.activePowerups[key];
+                    // 增益结束时的处理
+                    if (key === 'doubleAttack') {
+                        player.attack = Math.floor(player.attack / 2);
+                    }
+                }
+            }
+        });
+    },
+    
+    // v1.3.6: 激活增益
+    activatePowerup(type, duration, multiplier = 2) {
+        this.activePowerups[type] = duration;
+        if (type === 'doubleAttack') {
+            player.attack = Math.floor(player.attack * multiplier);
+        }
+    },
     
     addLevelUpEffect(x, y) {
         this.levelUpEffects.push({
