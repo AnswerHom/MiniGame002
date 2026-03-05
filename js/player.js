@@ -1,4 +1,5 @@
 // v1.1.0: 玩家模块 - Q版水墨风形象
+// v1.5.1: 武器动画优化
 
 const player = {
     x: 100,
@@ -30,6 +31,9 @@ const player = {
     initialEquipment: {
         weapon: { name: '新手剑', attackBonus: 2 }
     },
+    
+    // v1.5.1: 武器类型 (sword/blade/spear)
+    weaponType: 'sword',
     
     // v1.2.0: Q版水墨风配色（修正后与需求文档一致）
     robeColor: '#f0f5f9',      // 月白色长袍
@@ -301,25 +305,35 @@ const player = {
         ctx.fill();
         
         // v1.1.0: 武器 - 剑（银色剑身+红色剑穗）
+        // v1.5.1: 添加闲置时武器微动效果
+        const weaponSway = this.attacking ? 0 : Math.sin(this.idleTime * WEAPON_ANIMATION.idleSwaySpeed) * WEAPON_ANIMATION.idleSwayAmount;
+        
+        // 绘制武器（带微动效果）
+        ctx.save();
+        ctx.translate(screenX + 16, screenY - 24); // 手部位置
+        ctx.rotate(weaponSway * Math.PI / 180);
+        
         // 剑柄
         ctx.fillStyle = '#8b4513';
-        ctx.fillRect(screenX + 28, screenY - 28, 6, 4);
+        ctx.fillRect(12, 4, 6, 4);
         // 剑穗
         ctx.fillStyle = this.weaponAccentColor;
         ctx.beginPath();
-        ctx.moveTo(screenX + 30, screenY - 24);
-        ctx.quadraticCurveTo(screenX + 35, screenY - 18, screenX + 32, screenY - 12);
+        ctx.moveTo(14, 8);
+        ctx.quadraticCurveTo(19, 14, 16, 20);
         ctx.lineWidth = 2;
         ctx.stroke();
         
         // 剑身
         ctx.fillStyle = this.weaponColor;
-        ctx.fillRect(screenX + 30, screenY - 44, 3, 18);
+        ctx.fillRect(14, -16, 3, 18);
         // 剑刃光芒
         ctx.fillStyle = '#fff';
         ctx.globalAlpha = 0.6;
-        ctx.fillRect(screenX + 31, screenY - 43, 1, 16);
+        ctx.fillRect(15, -15, 1, 16);
         ctx.globalAlpha = 1.0;
+        
+        ctx.restore();
         
         // v1.1.0: 攻击动画 - v1.4.4: 三段式攻击（windup前摇-swing挥动-followthrough收招）
         if (this.attacking) {
@@ -358,14 +372,34 @@ const player = {
             ctx.rotate(bodyTilt);
             ctx.translate(-(screenX + 16), -(screenY - 24));
             
+            // v1.5.1: 根据武器类型添加特殊效果
+            const weaponConfig = WEAPON_TYPES[this.weaponType] || WEAPON_TYPES.sword;
+            
             // 残影效果
             ctx.globalAlpha = 0.3;
             for (let i = 1; i <= 3; i++) {
                 ctx.save();
                 ctx.translate(screenX + 16 + weaponOffsetX, screenY - 30 + weaponOffsetY);
                 ctx.rotate(swingAngle - i * 0.1);
+                
+                // v1.5.1: 刀类武器旋转效果
+                if (this.weaponType === 'blade' && this.attackPhase === 'swing') {
+                    ctx.rotate(Math.sin(Date.now() / 50) * weaponConfig.rotationAngle * Math.PI / 180);
+                }
+                
                 ctx.fillStyle = '#fff';
-                ctx.fillRect(10, -1, 25, 3);
+                
+                // v1.5.1: 不同武器类型绘制不同形状
+                if (this.weaponType === 'spear') {
+                    // 枪 - 细长形状
+                    ctx.fillRect(10, -0.5, 35, 1);
+                } else if (this.weaponType === 'blade') {
+                    // 刀 - 宽扁形状
+                    ctx.fillRect(8, -2, 28, 4);
+                } else {
+                    // 剑 - 默认
+                    ctx.fillRect(10, -1, 25, 3);
+                }
                 ctx.restore();
             }
             ctx.globalAlpha = 1.0;
@@ -377,14 +411,49 @@ const player = {
             ctx.save();
             ctx.translate(screenX + 16 + weaponOffsetX, screenY - 30 + weaponOffsetY);
             ctx.rotate(swingAngle);
-            // 剑
-            ctx.fillStyle = this.weaponColor;
-            ctx.fillRect(10, -1.5, 28, 3);
-            // 剑刃
-            ctx.fillStyle = '#fff';
-            ctx.globalAlpha = 0.7;
-            ctx.fillRect(12, -0.5, 24, 1);
-            ctx.globalAlpha = 1.0;
+            
+            // v1.5.1: 刀类武器旋转效果
+            if (this.weaponType === 'blade' && this.attackPhase === 'swing') {
+                ctx.rotate(Math.sin(Date.now() / 50) * weaponConfig.rotationAngle * Math.PI / 180);
+            }
+            
+            // v1.5.1: 枪类武器震动效果
+            let vibrationOffset = 0;
+            if (this.weaponType === 'spear' && this.attackPhase === 'swing') {
+                vibrationOffset = Math.sin(Date.now() / 30) * weaponConfig.vibrationAmount;
+            }
+            
+            // v1.5.1: 根据武器类型绘制不同形状
+            if (this.weaponType === 'spear') {
+                // 枪 - 细长戳刺
+                ctx.fillStyle = this.weaponColor;
+                ctx.fillRect(10 + vibrationOffset, -0.5, 38, 2);
+                // 枪尖
+                ctx.fillStyle = '#fff';
+                ctx.globalAlpha = 0.7;
+                ctx.fillRect(46 + vibrationOffset, -1, 4, 2);
+                ctx.globalAlpha = 1.0;
+            } else if (this.weaponType === 'blade') {
+                // 刀 - 宽扁有弧度
+                ctx.fillStyle = this.weaponColor;
+                ctx.fillRect(8, -2, 30, 4);
+                ctx.fillStyle = '#666';
+                ctx.fillRect(10, -1, 26, 2);
+                // 刀刃
+                ctx.fillStyle = '#fff';
+                ctx.globalAlpha = 0.7;
+                ctx.fillRect(12, -1.5, 24, 1);
+                ctx.globalAlpha = 1.0;
+            } else {
+                // 剑 - 默认
+                ctx.fillStyle = this.weaponColor;
+                ctx.fillRect(10, -1.5, 28, 3);
+                // 剑刃
+                ctx.fillStyle = '#fff';
+                ctx.globalAlpha = 0.7;
+                ctx.fillRect(12, -0.5, 24, 1);
+                ctx.globalAlpha = 1.0;
+            }
             ctx.restore();
             
             ctx.restore();  // 身体倾斜恢复
