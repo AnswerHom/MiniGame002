@@ -1,11 +1,11 @@
-// ===== v1.5.2 UI布局与交互规范 =====
+// ===== v1.6.0 UI布局与交互规范 =====
 
-// 安全区定义
+// v1.6.0: 优化安全区定义，解决UI重叠问题
 const UI_SAFE_ZONE = {
-    top: 20,       // 顶部安全边距
-    bottom: 100,   // 底部安全边距（预留操作区）
-    left: 20,      // 左侧安全边距
-    right: 20      // 右侧安全边距
+    top: 15,       // 顶部安全边距（紧凑）
+    bottom: 80,   // 底部安全边距（预留操作区）
+    left: 15,      // 左侧安全边距
+    right: 15      // 右侧安全边距
 };
 
 // 交互优化常量
@@ -16,49 +16,53 @@ const UI_INTERACTION = {
     clickPadding: 10        // 点击区域扩展 padding
 };
 
-// 层级分离定义
+// v1.6.0: 层级分离定义（优化）
 const UI_LAYERS = {
-    SCENE: 0,        // 游戏场景、背景
-    MIDDLE: 10,      // 角色、怪物、UI背景
-    TOP: 100         // 交互按钮、弹窗、伤害数字
+    SCENE: 0,        // 游戏场景、背景、血条
+    MIDDLE: 10,      // 角色、怪物
+    UI_BASE: 50,     // 基础UI信息（境界、等级等）
+    UI_COMBAT: 60,   // 战斗信息（击杀、伤害等）
+    UI_BUTTONS: 70,  // 交互按钮
+    UI_POPUP: 100,   // 弹窗、遮罩
+    UI_FEEDBACK: 110 // 飘字、反馈
 };
 
-// 状态面板（左上角）
+// v1.6.0: 四角定位 - 状态栏位置（左上角）
 function getStatusPanelPos() {
     return {
-        x: UI_SAFE_ZONE.left,
-        y: UI_SAFE_ZONE.top
+        x: UI_SAFE_ZONE.left + 5,
+        y: UI_SAFE_ZONE.top + 5
     };
 }
 
-// 状态面板尺寸
+// v1.6.0: 状态栏尺寸（紧凑排列）
 function getStatusPanelSize() {
     return {
-        width: 200,
-        height: 130
+        width: 180,
+        height: 110
     };
 }
 
-// 战斗统计面板（右上角）
+// v1.6.0: 战斗信息面板位置（右上角）
 function getStatsPanelPos() {
     return {
-        x: CONFIG.width - UI_SAFE_ZONE.right - 150,
-        y: UI_SAFE_ZONE.top
+        x: CONFIG.width - UI_SAFE_ZONE.right - 160,
+        y: UI_SAFE_ZONE.top + 5
     };
 }
 
-// 右侧按钮组（右上角）
+// v1.6.0: 右侧按钮组位置（右上角，战斗信息下方）
 function getRightButtonsStartPos() {
     return {
         x: CONFIG.width - UI_SAFE_ZONE.right - UI_INTERACTION.minButtonSize,
-        y: UI_SAFE_ZONE.top
+        y: UI_SAFE_ZONE.top + 5 + 100  // 状态栏高度 + 间距
     };
 }
 
-// 动作面板（左下角）
+// v1.6.0: 动作面板位置（左下角）
 function getActionPanelPos() {
     return {
-        x: UI_SAFE_ZONE.left,
+        x: UI_SAFE_ZONE.left + 5,
         y: CONFIG.height - UI_SAFE_ZONE.bottom - UI_INTERACTION.minButtonSize
     };
 }

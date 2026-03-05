@@ -1,85 +1,90 @@
-// ===== v1.0.5 UI模块 =====
+// ===== v1.6.0 UI模块 =====
 
 function drawUI() {
+    // v1.6.0: 使用布局规范，四角定位
+    const statusPos = getStatusPanelPos();
+    const combatPos = getStatsPanelPos();
+    
     ctx.font = '14px Microsoft YaHei';
     ctx.textAlign = 'left';
     
-    // 境界显示 (v1.0.5新增)
+    // ===== 左上角状态栏 =====
+    // 境界显示
     const realm = getRealm(player.level);
     const realmColor = REALM_COLORS[realm.name] || '#ffffff';
     ctx.fillStyle = realmColor;
-    ctx.fillText('境界: ' + realm.name, 20, 25);
+    ctx.fillText('境界: ' + realm.name, statusPos.x, statusPos.y + 10);
     
     // 等级
     ctx.fillStyle = '#fff';
-    ctx.fillText('等级: Lv.' + player.level, 120, 25);
+    ctx.fillText('Lv.' + player.level, statusPos.x + 80, statusPos.y + 10);
     
     // 血条背景
     ctx.fillStyle = '#333';
-    ctx.fillRect(20, 35, 100, 10);
-    // 血条 - v1.4.6: 颜色渐变（绿到红）
+    ctx.fillRect(statusPos.x, statusPos.y + 18, 100, 8);
+    // 血条 - 颜色渐变（绿到红）
     const hpPercent = Math.max(0, player.hp / player.maxHp);
     let hpColor;
     if (hpPercent > 0.6) {
-        hpColor = '#44ff44'; // 绿色
+        hpColor = '#44ff44';
     } else if (hpPercent > 0.3) {
-        hpColor = '#ffaa00'; // 橙色
+        hpColor = '#ffaa00';
     } else {
-        hpColor = '#ff4444'; // 红色
+        hpColor = '#ff4444';
     }
     ctx.fillStyle = hpColor;
-    ctx.fillRect(20, 35, 100 * hpPercent, 10);
-    // 血量
+    ctx.fillRect(statusPos.x, statusPos.y + 18, 100 * hpPercent, 8);
+    // 血量数值
     ctx.fillStyle = '#fff';
-    ctx.fillText(player.hp + '/' + player.maxHp, 130, 44);
+    ctx.font = '11px Microsoft YaHei';
+    ctx.fillText(player.hp + '/' + player.maxHp, statusPos.x + 102, statusPos.y + 25);
+    ctx.font = '14px Microsoft YaHei';
     
-    // 攻击 - v1.3.7: 显示攻击力增益 - v1.4.3: 显示初始装备
+    // 攻击力
     ctx.fillStyle = '#ffd700';
     let attackText = '攻击: ' + player.attack;
-    // v1.3.7: 如果有攻击力增益，显示原始攻击力
     if (game.activePowerups.doubleAttack) {
         const originalAttack = Math.floor(player.attack / 2);
         attackText = '攻击: ' + originalAttack + '→' + player.attack;
-        // v1.3.7: 攻击力增益高亮显示
         ctx.fillStyle = '#00ff00';
     }
-    // v1.4.3: 如果有初始装备，显示装备加成
     if (player.initialEquipment && player.initialEquipment.weapon) {
         const equip = player.initialEquipment.weapon;
         attackText += ' [' + equip.name + '+' + equip.attackBonus + ']';
     }
-    ctx.fillText(attackText, 20, 60);
+    ctx.fillText(attackText, statusPos.x, statusPos.y + 42);
     
-    // 击杀
-    ctx.fillStyle = '#ff6666';
-    ctx.fillText('击杀: ' + game.killCount, 130, 60);
-    
-    // 距离 (v1.5.7: 10px = 1米)
+    // 距离
     ctx.fillStyle = '#00ffff';
-    ctx.fillText('距离: ' + Math.floor(player.x / 10) + '米', 20, 80);
+    ctx.fillText('距离: ' + Math.floor(player.x / 10) + '米', statusPos.x, statusPos.y + 58);
     
-    // v1.3.5: 金币显示
+    // ===== 右上角战斗信息 =====
+    // 击杀数
+    ctx.fillStyle = '#ff6666';
+    ctx.fillText('击杀: ' + game.killCount, combatPos.x, combatPos.y + 10);
+    
+    // 伤害统计
+    ctx.fillStyle = '#ff6b6b';
+    ctx.fillText('伤害: ' + game.totalDamage, combatPos.x, combatPos.y + 26);
+    
+    // 金币
     ctx.fillStyle = '#ffd700';
-    ctx.fillText('💰 ' + game.gold, 130, 80);
+    ctx.fillText('💰 ' + game.gold, combatPos.x, combatPos.y + 42);
     
-    // v1.4.0: 关卡进度显示
+    // 累计金币
+    ctx.fillStyle = '#ffd700';
+    ctx.fillText('累计: ' + game.totalGoldEarned, combatPos.x, combatPos.y + 58);
+    
+    // 关卡进度
     const wave = Math.floor(player.x / 1000) + 1;
     ctx.fillStyle = '#a855f7';
-    ctx.fillText('第 ' + wave + ' 波', 20, 100);
+    ctx.fillText('第 ' + wave + ' 波', combatPos.x, combatPos.y + 74);
     
-    // v1.4.4: 伤害统计实时显示
-    ctx.fillStyle = '#ff6b6b';
-    ctx.fillText('伤害: ' + game.totalDamage, 130, 100);
-    
-    // v1.4.4: 累计金币获取显示
-    ctx.fillStyle = '#ffd700';
-    ctx.fillText('累计: ' + game.totalGoldEarned, 20, 120);
-    
-    // 场景名称
+    // 场景名称（右上角顶部）
     const scene = getScene(player.x);
     ctx.fillStyle = '#aaa';
     ctx.textAlign = 'right';
-    ctx.fillText(scene.name, CONFIG.width - 20, 25);
+    ctx.fillText(scene.name, CONFIG.width - UI_SAFE_ZONE.right, statusPos.y + 10);
     ctx.textAlign = 'left';
     
     // v1.3.4: 音效开关按钮
@@ -110,7 +115,7 @@ function drawUI() {
     drawBackpackUI();
 }
 
-// v1.3.4: 绘制音效开关按钮 - v1.5.2: 使用布局规范，按钮尺寸≥44px
+// v1.3.4: 绘制音效开关按钮 - v1.5.2: 使用布局规范，按钮尺寸≥44px - v1.6.0: 优化位置
 function drawSoundButton() {
     const btnPos = getRightButtonsStartPos();
     const btnX = btnPos.x;
@@ -138,11 +143,11 @@ function drawSoundButton() {
     game.uiButtons.sound = { x: btnX, y: btnY, width: btnSize, height: btnSize, bgColor: '#4a5568', icon: game.soundEnabled ? '🔊' : '🔇' };
 }
 
-// v1.3.4: 绘制帮助按钮 - v1.5.2: 使用布局规范，按钮尺寸≥44px，间距≥20px
+// v1.3.4: 绘制帮助按钮 - v1.5.2: 使用布局规范，按钮尺寸≥44px，间距≥20px - v1.6.0: 优化位置
 function drawHelpButton() {
     const btnPos = getRightButtonsStartPos();
     const btnX = btnPos.x;
-    const btnY = btnPos.y + UI_INTERACTION.minButtonSize + UI_INTERACTION.buttonSpacing;  // 44 + 20 = 64px 间距
+    const btnY = btnPos.y + UI_INTERACTION.minButtonSize + UI_INTERACTION.buttonSpacing;
     const btnSize = UI_INTERACTION.minButtonSize;  // 44px
     
     // 按钮背景
@@ -218,11 +223,11 @@ function drawGoldDisplay() {
     ctx.textAlign = 'left';
 }
 
-// v1.3.5: 绘制暂停按钮 - v1.5.2: 使用布局规范，按钮尺寸≥44px，间距≥20px
+// v1.3.5: 绘制暂停按钮 - v1.5.2: 使用布局规范，按钮尺寸≥44px，间距≥20px - v1.6.0: 优化位置
 function drawPauseButton() {
     const btnPos = getRightButtonsStartPos();
     const btnX = btnPos.x;
-    const btnY = btnPos.y + (UI_INTERACTION.minButtonSize + UI_INTERACTION.buttonSpacing) * 2;  // 第3个按钮
+    const btnY = btnPos.y + (UI_INTERACTION.minButtonSize + UI_INTERACTION.buttonSpacing) * 2;
     const btnSize = UI_INTERACTION.minButtonSize;  // 44px
     
     // 按钮背景
@@ -289,3 +294,53 @@ function drawPauseOverlay() {
     ctx.textAlign = 'left';
 }
 
+
+// ===== v1.0.5 基础配置 =====
+// 包含：canvas初始化、基础配置
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+const CONFIG = { width: 800, height: 450, groundY: 380, cameraOffset: 0, distanceScale: 10 };  // v1.2.3: 10px = 1米
+canvas.width = CONFIG.width;
+canvas.height = CONFIG.height;
+
+const BATTLE_STATES = {
+    ADVANCE: 'advance',
+    COMBAT: 'combat',
+    VICTORY: 'victory'
+};
+
+// 境界系统
+const REALMS = [
+    { name: '练气', minLevel: 1 },
+    { name: '筑基', minLevel: 5 },
+    { name: '金丹', minLevel: 10 },
+    { name: '元婴', minLevel: 15 },
+    { name: '化神', minLevel: 20 },
+    { name: '炼虚', minLevel: 25 },
+    { name: '合体', minLevel: 30 },
+    { name: '大乘', minLevel: 35 },
+    { name: '渡劫', minLevel: 40 },
+    { name: '飞升', minLevel: 50 }
+];
+
+const REALM_COLORS = {
+    '练气': '#888888',
+    '筑基': '#4ade80',
+    '金丹': '#fbbf24',
+    '元婴': '#f97316',
+    '化神': '#ef4444',
+    '炼虚': '#ec4899',
+    '合体': '#8b5cf6',
+    '大乘': '#3b82f6',
+    '渡劫': '#06b6d4',
+    '飞升': '#fbbf24'
+};
+
+function getRealm(level) {
+    for (let i = REALMS.length - 1; i >= 0; i--) {
+        if (level >= REALMS[i].minLevel) return REALMS[i];
+    }
+    return REALMS[0];
+}

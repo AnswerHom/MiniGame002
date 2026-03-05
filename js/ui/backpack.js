@@ -140,7 +140,7 @@ function getBackpackDisplayState() {
     };
 }
 
-// 绘制背包按钮 - v1.5.6: 背包入口
+// 绘制背包按钮 - v1.5.6: 背包入口 - v1.6.0: 优化位置，与其他按钮对齐
 function drawBackpackButton() {
     const btnPos = getRightButtonsStartPos();
     const btnX = btnPos.x;
