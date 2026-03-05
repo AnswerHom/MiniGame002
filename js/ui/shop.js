@@ -42,11 +42,12 @@ function purchaseItem(item) {
     }
 }
 
-// v1.3.6: 绘制商店按钮
+// v1.3.6: 绘制商店按钮 - v1.5.2: 使用布局规范，按钮尺寸≥44px，间距≥20px
 function drawShopButton() {
-    const btnX = CONFIG.width - 50;
-    const btnY = 170;
-    const btnSize = 30;
+    const btnPos = getRightButtonsStartPos();
+    const btnX = btnPos.x;
+    const btnY = btnPos.y + (UI_INTERACTION.minButtonSize + UI_INTERACTION.buttonSpacing) * 3;  // 第4个按钮
+    const btnSize = UI_INTERACTION.minButtonSize;  // 44px
     
     // 按钮背景
     ctx.fillStyle = game.showShop ? '#4CAF50' : '#4a5568';
@@ -59,10 +60,14 @@ function drawShopButton() {
     
     // 商店图标
     ctx.fillStyle = '#fff';
-    ctx.font = '16px Arial';
+    ctx.font = '20px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('🛒', btnX + btnSize/2, btnY + 20);
+    ctx.fillText('🛒', btnX + btnSize/2, btnY + btnSize/2 + 6);
     ctx.textAlign = 'left';
+    
+    // 记录按钮区域供点击检测
+    game.uiButtons = game.uiButtons || {};
+    game.uiButtons.shop = { x: btnX, y: btnY, width: btnSize, height: btnSize, bgColor: '#4a5568', icon: '🛒' };
 }
 
 // v1.3.6: 绘制商店界面

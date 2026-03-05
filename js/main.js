@@ -257,15 +257,44 @@ gameCanvas.addEventListener('touchstart', function(e) {
     });
 }, { passive: false });
 
-// v1.3.5: 处理点击/触屏事件 - v1.3.6: 合并统一处理
+// v1.5.2: 使用布局规范的按钮点击检测
+function getButtonArea(buttonName) {
+    const btnPos = getRightButtonsStartPos();
+    const btnSize = UI_INTERACTION.minButtonSize;
+    
+    const buttonAreas = {
+        sound: { x: btnPos.x, y: btnPos.y, width: btnSize, height: btnSize },
+        help: { x: btnPos.x, y: btnPos.y + btnSize + UI_INTERACTION.buttonSpacing, width: btnSize, height: btnSize },
+        pause: { x: btnPos.x, y: btnPos.y + (btnSize + UI_INTERACTION.buttonSpacing) * 2, width: btnSize, height: btnSize },
+        shop: { x: btnPos.x, y: btnPos.y + (btnSize + UI_INTERACTION.buttonSpacing) * 3, width: btnSize, height: btnSize }
+    };
+    
+    return buttonAreas[buttonName];
+}
+
+// v1.5.2: 按钮点击反馈
+function triggerButtonFeedback(buttonName) {
+    const area = getButtonArea(buttonName);
+    if (area) {
+        game.buttonFeedback = game.buttonFeedback || {};
+        game.buttonFeedback[buttonName] = {
+            startTime: Date.now(),
+            duration: UI_INTERACTION.feedbackTime
+        };
+    }
+}
+
+// v1.3.5: 处理点击/触屏事件 - v1.3.6: 合并统一处理 - v1.5.2: 使用布局规范
 function handleClick(e) {
     // v1.2.8: 首次交互时初始化AudioContext
     game.initAudio();
     
     // 获取坐标
     const rect = gameCanvas.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const clickY = e.clientY - rect.top;
+    const scaleX = gameCanvas.width / rect.width;
+    const scaleY = gameCanvas.height / rect.height;
+    const clickX = (e.clientX - rect.left) * scaleX;
+    const clickY = (e.clientY - rect.top) * scaleY;
     
     // 如果暂停中，点击继续游戏
     if (game.paused) {
@@ -312,20 +341,29 @@ function handleClick(e) {
         return;
     }
     
-    // 音效开关按钮 (x: width-50, y: 50)
-    if (clickX >= CONFIG.width - 50 && clickX <= CONFIG.width - 20 && clickY >= 50 && clickY <= 80) {
+    // v1.5.2: 使用布局规范的按钮检测
+    const soundArea = getButtonArea('sound');
+    const helpArea = getButtonArea('help');
+    const pauseArea = getButtonArea('pause');
+    const shopArea = getButtonArea('shop');
+    
+    // 音效开关按钮 - 使用扩展点击区域
+    if (isPointInButton(clickX, clickY, soundArea)) {
+        triggerButtonFeedback('sound');
         game.soundEnabled = !game.soundEnabled;
         return;
     }
     
-    // 帮助按钮 (x: width-50, y: 90)
-    if (clickX >= CONFIG.width - 50 && clickX <= CONFIG.width - 20 && clickY >= 90 && clickY <= 120) {
+    // 帮助按钮 - 使用扩展点击区域
+    if (isPointInButton(clickX, clickY, helpArea)) {
+        triggerButtonFeedback('help');
         game.showHelp = true;
         return;
     }
     
-    // v1.3.5: 暂停按钮 (x: width-50, y: 130)
-    if (clickX >= CONFIG.width - 50 && clickX <= CONFIG.width - 20 && clickY >= 130 && clickY <= 160) {
+    // 暂停按钮 - 使用扩展点击区域
+    if (isPointInButton(clickX, clickY, pauseArea)) {
+        triggerButtonFeedback('pause');
         game.paused = !game.paused;
         if (!game.paused) {
             game.lastTime = performance.now();
@@ -334,9 +372,10 @@ function handleClick(e) {
         return;
     }
     
-    // v1.3.6: 商店按钮 (x: width-50, y: 170) - v1.3.7: 暂停时禁止打开商店
-    if (clickX >= CONFIG.width - 50 && clickX <= CONFIG.width - 20 && clickY >= 170 && clickY <= 200) {
+    // 商店按钮 - 使用扩展点击区域 - v1.3.7: 暂停时禁止打开商店
+    if (isPointInButton(clickX, clickY, shopArea)) {
         if (!game.paused) {
+            triggerButtonFeedback('shop');
             game.showShop = !game.showShop;
         }
         return;

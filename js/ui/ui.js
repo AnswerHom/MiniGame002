@@ -104,11 +104,12 @@ function drawUI() {
     drawShopUI();
 }
 
-// v1.3.4: 绘制音效开关按钮
+// v1.3.4: 绘制音效开关按钮 - v1.5.2: 使用布局规范，按钮尺寸≥44px
 function drawSoundButton() {
-    const btnX = CONFIG.width - 50;
-    const btnY = 50;
-    const btnSize = 30;
+    const btnPos = getRightButtonsStartPos();
+    const btnX = btnPos.x;
+    const btnY = btnPos.y;
+    const btnSize = UI_INTERACTION.minButtonSize;  // 44px
     
     // 按钮背景
     ctx.fillStyle = game.soundEnabled ? '#4a5568' : '#2d3748';
@@ -121,17 +122,22 @@ function drawSoundButton() {
     
     // 音效图标
     ctx.fillStyle = '#fff';
-    ctx.font = '16px Arial';
+    ctx.font = '20px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(game.soundEnabled ? '🔊' : '🔇', btnX + btnSize/2, btnY + 20);
+    ctx.fillText(game.soundEnabled ? '🔊' : '🔇', btnX + btnSize/2, btnY + btnSize/2 + 6);
     ctx.textAlign = 'left';
+    
+    // 记录按钮区域供点击检测
+    game.uiButtons = game.uiButtons || {};
+    game.uiButtons.sound = { x: btnX, y: btnY, width: btnSize, height: btnSize, bgColor: '#4a5568', icon: game.soundEnabled ? '🔊' : '🔇' };
 }
 
-// v1.3.4: 绘制帮助按钮
+// v1.3.4: 绘制帮助按钮 - v1.5.2: 使用布局规范，按钮尺寸≥44px，间距≥20px
 function drawHelpButton() {
-    const btnX = CONFIG.width - 50;
-    const btnY = 90;
-    const btnSize = 30;
+    const btnPos = getRightButtonsStartPos();
+    const btnX = btnPos.x;
+    const btnY = btnPos.y + UI_INTERACTION.minButtonSize + UI_INTERACTION.buttonSpacing;  // 44 + 20 = 64px 间距
+    const btnSize = UI_INTERACTION.minButtonSize;  // 44px
     
     // 按钮背景
     ctx.fillStyle = '#4a5568';
@@ -144,10 +150,14 @@ function drawHelpButton() {
     
     // 帮助图标
     ctx.fillStyle = '#fff';
-    ctx.font = '16px Arial';
+    ctx.font = '20px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('?', btnX + btnSize/2, btnY + 20);
+    ctx.fillText('?', btnX + btnSize/2, btnY + btnSize/2 + 6);
     ctx.textAlign = 'left';
+    
+    // 记录按钮区域供点击检测
+    game.uiButtons = game.uiButtons || {};
+    game.uiButtons.help = { x: btnX, y: btnY, width: btnSize, height: btnSize, bgColor: '#4a5568', text: '?' };
 }
 
 // v1.3.4: 绘制帮助信息
@@ -202,11 +212,12 @@ function drawGoldDisplay() {
     ctx.textAlign = 'left';
 }
 
-// v1.3.5: 绘制暂停按钮（已移除重复定义）
+// v1.3.5: 绘制暂停按钮 - v1.5.2: 使用布局规范，按钮尺寸≥44px，间距≥20px
 function drawPauseButton() {
-    const btnX = CONFIG.width - 50;
-    const btnY = 130;
-    const btnSize = 30;
+    const btnPos = getRightButtonsStartPos();
+    const btnX = btnPos.x;
+    const btnY = btnPos.y + (UI_INTERACTION.minButtonSize + UI_INTERACTION.buttonSpacing) * 2;  // 第3个按钮
+    const btnSize = UI_INTERACTION.minButtonSize;  // 44px
     
     // 按钮背景
     ctx.fillStyle = '#4a5568';
@@ -219,10 +230,14 @@ function drawPauseButton() {
     
     // 暂停图标
     ctx.fillStyle = '#fff';
-    ctx.font = '14px Arial';
+    ctx.font = '20px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('⏸', btnX + btnSize/2, btnY + 20);
+    ctx.fillText('⏸', btnX + btnSize/2, btnY + btnSize/2 + 6);
     ctx.textAlign = 'left';
+    
+    // 记录按钮区域供点击检测
+    game.uiButtons = game.uiButtons || {};
+    game.uiButtons.pause = { x: btnX, y: btnY, width: btnSize, height: btnSize, bgColor: '#4a5568', icon: '⏸' };
 }
 
 // v1.3.5: 绘制暂停覆盖层 - v1.3.9: 显示已激活增益
