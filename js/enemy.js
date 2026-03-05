@@ -198,13 +198,7 @@ class Enemy {
             // v1.4.3: 使用recordGold记录金币获取统计
             game.recordGold(goldDrop);
             // v1.4.6: 金币获取视觉反馈 - 飘字效果
-            game.addDamageNumber({
-                x: this.x + this.width / 2,
-                y: this.y - this.height,
-                damage: '+' + goldDrop + '💰',
-                isCrit: false,
-                isGold: true
-            });
+            game.addDamageNumber(this.x + this.width / 2, this.y - this.height, '+' + goldDrop + '💰', false, true);
             // v1.2.7: 怪物死亡音效
             game.playSound('hit');
             // v1.4.0: 添加死亡动画
