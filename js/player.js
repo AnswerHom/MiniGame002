@@ -13,8 +13,8 @@ const player = {
     baseAttack: 10,  // v1.4.3: 基础攻击力（不含装备）
     speed: 80,   // v1.2.3: 80px/秒（固定值）
     attackCooldown: 0,
-    attackRange: 80,
-    attackInterval: 1.2,
+    attackRange: 50,  // v1.5.7: 5米 (10px=1m)
+    viewDistance: 300,  // v1.5.7: 30米 - 主角视野范围
     critRate: 0.05,
     critDamage: 2.0,
     exp: 0,

@@ -61,6 +61,12 @@ const REALM_MULTIPLIERS = {
     '金丹': { hp: 1.6, attack: 1.4 }
 };
 
+// v1.5.7: 怪物视野和追击距离配置（10像素=1米）
+// 怪物视野：200px = 20米（发现主角的距离）
+// 追击距离：250px = 25米（开始追击的距离）
+const MONSTER_VIEW_DISTANCE = 200;   // 20米 - 怪物视野
+const MONSTER_CHASE_DISTANCE = 250;  // 25米 - 追击距离
+
 // v1.2.4: 境界颜色区分 - 练气：灰色 | 筑基：绿色 | 金丹：蓝色
 const ENEMY_REALM_COLORS = {
     '练气': '#888888',

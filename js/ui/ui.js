@@ -54,9 +54,9 @@ function drawUI() {
     ctx.fillStyle = '#ff6666';
     ctx.fillText('击杀: ' + game.killCount, 130, 60);
     
-    // 距离 (v1.2.2: 100px = 1米)
+    // 距离 (v1.5.7: 10px = 1米)
     ctx.fillStyle = '#00ffff';
-    ctx.fillText('距离: ' + Math.floor(player.x / 100) + 'm', 20, 80);
+    ctx.fillText('距离: ' + Math.floor(player.x / 10) + '米', 20, 80);
     
     // v1.3.5: 金币显示
     ctx.fillStyle = '#ffd700';

@@ -424,3 +424,4 @@ function handleClick(e) {
 }
 
 window.onload = startGame;
+test
