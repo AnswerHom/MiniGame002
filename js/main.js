@@ -26,6 +26,12 @@ function update(dt) {
     // v1.3.9: 购买确认提示更新
     game.updatePurchaseConfirm(dt);
     
+    // v1.4.3: 屏幕震动更新
+    game.updateScreenShake(dt);
+    
+    // v1.4.3: 连杀状态更新
+    game.updateKillStreak();
+    
     // 玩家更新
     player.update(dt);
     
@@ -68,6 +74,12 @@ function update(dt) {
 function draw() {
     ctx.clearRect(0, 0, CONFIG.width, CONFIG.height);
     
+    // v1.4.3: 应用屏幕震动偏移
+    ctx.save();
+    if (game.screenShake.active) {
+        ctx.translate(game.screenShake.offsetX, game.screenShake.offsetY);
+    }
+    
     drawBackground();
     
     // 绘制怪物
@@ -94,6 +106,12 @@ function draw() {
     // v1.3.9: 绘制购买确认提示
     game.drawPurchaseConfirm();
     
+    // v1.4.3: 绘制连杀显示
+    game.drawKillStreak();
+    
+    // 恢复画布（取消震动偏移）
+    ctx.restore();
+    
     // 游戏结束
     if (game.gameOver) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
@@ -101,13 +119,18 @@ function draw() {
         ctx.fillStyle = '#ff4444';
         ctx.font = 'bold 48px Microsoft YaHei';
         ctx.textAlign = 'center';
-        ctx.fillText('游戏结束', CONFIG.width / 2, CONFIG.height / 2 - 60);
+        ctx.fillText('游戏结束', CONFIG.width / 2, CONFIG.height / 2 - 100);
         ctx.fillStyle = '#fff';
         ctx.font = '24px Microsoft YaHei';
-        ctx.fillText('等级: Lv.' + player.level, CONFIG.width / 2, CONFIG.height / 2 - 10);
-        ctx.fillText('击杀: ' + game.killCount, CONFIG.width / 2, CONFIG.height / 2 + 30);
+        ctx.fillText('等级: Lv.' + player.level, CONFIG.width / 2, CONFIG.height / 2 - 40);
+        ctx.fillText('击杀: ' + game.killCount, CONFIG.width / 2, CONFIG.height / 2);
         // v1.3.5: 金币显示
-        ctx.fillText('金币: ' + game.gold, CONFIG.width / 2, CONFIG.height / 2 + 70);
+        ctx.fillText('金币: ' + game.gold, CONFIG.width / 2, CONFIG.height / 2 + 40);
+        // v1.4.3: 伤害统计显示
+        ctx.fillStyle = '#ffd700';
+        ctx.fillText('总伤害: ' + game.totalDamage, CONFIG.width / 2, CONFIG.height / 2 + 80);
+        // v1.4.3: 金币获取统计
+        ctx.fillText('获得金币: ' + game.totalGoldEarned, CONFIG.width / 2, CONFIG.height / 2 + 120);
         // v1.3.5: 再来一局按钮
         drawRestartButton();
     }
@@ -132,12 +155,25 @@ function startGame() {
     game.spawnTimer = 0;
     game.gameOver = false;
     game.damageNumbers = [];
+    
+    // v1.4.3: 初始化统计
+    game.totalDamage = 0;
+    game.totalGoldEarned = 0;
+    game.killStreak = 0;
+    game.lastKillTime = 0;
+    
     // v1.2.7: 玩家初始位置优化 - 从x=50开始
     player.x = 50;
     player.hp = player.maxHp;
     player.exp = 0;
     player.level = 1;
     player.isMoving = true;
+    
+    // v1.4.3: 初始装备系统 - 玩家自带武器（攻击力+2）
+    const equip = player.initialEquipment.weapon;
+    player.baseAttack = 10;
+    player.attack = player.baseAttack + equip.attackBonus;
+    
     // v1.2.7: 记录开局时间用于生成冷却控制
     game.startTime = Date.now();
     requestAnimationFrame(gameLoop);

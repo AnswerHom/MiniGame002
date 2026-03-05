@@ -1,29 +1,48 @@
-// ===== v1.3.2 怪物模块 =====
+// ===== v1.4.3 怪物模块 =====
 // v1.3.2: 修复怪物AI逻辑 - attackDistance >= stopDistance
 
-// v1.3.2: 怪物属性配置（已修正 attackDistance >= stopDistance）
+// v1.4.3: 怪物属性配置 - 包含成长系数
+// 公式：怪物属性 = 基础值 × (1 + 成长系数 × 进度)
+// 进度 = 已移动距离 ÷ 1000（每移动1000像素为1级）
 const ENEMY_TYPES = {
     // 阴魂：白色半透明鬼火，淡淡光晕，圆形
-    阴魂: { hp: 20, attack: 5, exp: 10, speed: 20, attackDistance: 60, stopDistance: 60, color: '#e2e8f0', size: 25, realmColor: '#718096' },
+    // 初始HP：15, HP成长：0.05, 初始攻击：5, 攻击成长：0.03
+    阴魂: { hp: 15, hpGrowth: 0.05, attack: 5, attackGrowth: 0.03, exp: 10, speed: 20, attackDistance: 60, stopDistance: 60, color: '#e2e8f0', size: 25, realmColor: '#718096' },
     // 妖狼：灰色毛皮，四足奔跑形态
-    妖狼: { hp: 30, attack: 8, exp: 15, speed: 50, attackDistance: 70, stopDistance: 70, color: '#718096', size: 35, realmColor: '#718096' },
+    // 初始HP：25, HP成长：0.06, 初始攻击：8, 攻击成长：0.04
+    妖狼: { hp: 25, hpGrowth: 0.06, attack: 8, attackGrowth: 0.04, exp: 15, speed: 50, attackDistance: 70, stopDistance: 70, color: '#718096', size: 35, realmColor: '#718096' },
     // 毒蛛：黑色背甲，红色斑点，8条腿
-    毒蛛: { hp: 25, attack: 10, exp: 12, speed: 25, attackDistance: 55, stopDistance: 55, color: '#1a202c', size: 30, realmColor: '#1a202c' },
+    // 初始HP：20, HP成长：0.05, 初始攻击：10, 攻击成长：0.03
+    毒蛛: { hp: 20, hpGrowth: 0.05, attack: 10, attackGrowth: 0.03, exp: 12, speed: 25, attackDistance: 55, stopDistance: 55, color: '#1a202c', size: 30, realmColor: '#1a202c' },
     // 僵尸：灰绿色皮肤，双臂平伸
-    僵尸: { hp: 40, attack: 12, exp: 20, speed: 20, attackDistance: 65, stopDistance: 65, color: '#68d391', size: 40, realmColor: '#68d391' },
+    // 初始HP：35, HP成长：0.07, 初始攻击：12, 攻击成长：0.04
+    僵尸: { hp: 35, hpGrowth: 0.07, attack: 12, attackGrowth: 0.04, exp: 20, speed: 20, attackDistance: 65, stopDistance: 65, color: '#68d391', size: 40, realmColor: '#68d391' },
     // v1.2.9: 新增怪物
     // 蝴蝶精：彩色翅膀，速度快，血量低
-    蝴蝶精: { hp: 15, attack: 4, exp: 8, speed: 60, attackDistance: 50, stopDistance: 50, color: '#f9a8d4', size: 20, realmColor: '#f9a8d4' },
+    // 初始HP：12, HP成长：0.04, 初始攻击：4, 攻击成长：0.02
+    蝴蝶精: { hp: 12, hpGrowth: 0.04, attack: 4, attackGrowth: 0.02, exp: 8, speed: 60, attackDistance: 50, stopDistance: 50, color: '#f9a8d4', size: 20, realmColor: '#f9a8d4' },
     // 毒蛇：绿色身体，三角形头部
-    毒蛇: { hp: 25, attack: 15, exp: 15, speed: 35, attackDistance: 45, stopDistance: 45, color: '#22c55e', size: 35, realmColor: '#22c55e' },
+    // 初始HP：20, HP成长：0.05, 初始攻击：12, 攻击成长：0.04
+    毒蛇: { hp: 20, hpGrowth: 0.05, attack: 12, attackGrowth: 0.04, exp: 15, speed: 35, attackDistance: 45, stopDistance: 45, color: '#22c55e', size: 35, realmColor: '#22c55e' },
     // 骷髅兵：白色骨架
-    骷髅: { hp: 45, attack: 14, exp: 22, speed: 25, attackDistance: 60, stopDistance: 60, color: '#f5f5f4', size: 38, realmColor: '#f5f5f4' },
+    // 初始HP：40, HP成长：0.08, 初始攻击：14, 攻击成长：0.05
+    骷髅: { hp: 40, hpGrowth: 0.08, attack: 14, attackGrowth: 0.05, exp: 22, speed: 25, attackDistance: 60, stopDistance: 60, color: '#f5f5f4', size: 38, realmColor: '#f5f5f4' },
     // 蝙蝠：黑色翅膀倒挂
-    蝙蝠: { hp: 18, attack: 6, exp: 10, speed: 40, attackDistance: 55, stopDistance: 55, color: '#1a1a1a', size: 28, realmColor: '#1a1a1a' },
+    // 初始HP：15, HP成长：0.04, 初始攻击：6, 攻击成长：0.03
+    蝙蝠: { hp: 15, hpGrowth: 0.04, attack: 6, attackGrowth: 0.03, exp: 10, speed: 40, attackDistance: 55, stopDistance: 55, color: '#1a1a1a', size: 28, realmColor: '#1a1a1a' },
     // 魔藤：紫色藤蔓，地面生长
-    魔藤: { hp: 35, attack: 18, exp: 18, speed: 15, attackDistance: 40, stopDistance: 40, color: '#805ad5', size: 32, realmColor: '#805ad5' },
+    // 初始HP：30, HP成长：0.06, 初始攻击：15, 攻击成长：0.05
+    魔藤: { hp: 30, hpGrowth: 0.06, attack: 15, attackGrowth: 0.05, exp: 18, speed: 15, attackDistance: 40, stopDistance: 40, color: '#805ad5', size: 32, realmColor: '#805ad5' },
     // 冰魔：蓝白色寒冰形态
-    冰魔: { hp: 50, attack: 10, exp: 25, speed: 18, attackDistance: 75, stopDistance: 75, color: '#63b3ed', size: 42, realmColor: '#63b3ed' }
+    // 初始HP：45, HP成长：0.09, 初始攻击：10, 攻击成长：0.04
+    冰魔: { hp: 45, hpGrowth: 0.09, attack: 10, attackGrowth: 0.04, exp: 25, speed: 18, attackDistance: 75, stopDistance: 75, color: '#63b3ed', size: 42, realmColor: '#63b3ed' }
+};
+
+// v1.4.3: 境界难度系数
+const REALM_MULTIPLIERS = {
+    '练气': { hp: 1.0, attack: 1.0 },
+    '筑基': { hp: 1.3, attack: 1.2 },
+    '金丹': { hp: 1.6, attack: 1.4 }
 };
 
 // v1.2.4: 境界颜色区分 - 练气：灰色 | 筑基：绿色 | 金丹：蓝色
@@ -44,9 +63,22 @@ class Enemy {
         this.height = config.size;
         this.type = type;
         this.realm = realm;
-        this.hp = config.hp;
-        this.maxHp = config.hp;
-        this.attack = config.attack;
+        
+        // v1.4.3: 计算怪物属性成长
+        // 进度 = 已移动距离 ÷ 1000（每移动1000像素为1级）
+        const progress = player.x / 1000;
+        
+        // 基础属性应用成长公式
+        const baseHp = config.hp * (1 + config.hpGrowth * progress);
+        const baseAttack = config.attack * (1 + config.attackGrowth * progress);
+        
+        // 应用境界系数
+        const realmMult = REALM_MULTIPLIERS[realm] || REALM_MULTIPLIERS['练气'];
+        
+        this.hp = Math.floor(baseHp * realmMult.hp);
+        this.maxHp = this.hp;
+        this.attack = Math.floor(baseAttack * realmMult.attack);
+        
         this.exp = config.exp;
         this.speed = config.speed;
         this.attackDistance = config.attackDistance;  // v1.2.3: 怪物攻击距离
@@ -134,6 +166,13 @@ class Enemy {
             this.alive = false;
             player.exp += this.exp;
             game.killCount++;
+            
+            // v1.4.3: 记录连杀
+            game.recordKill();
+            
+            // v1.4.3: 击杀反馈增强 - 屏幕震动（振幅5px，持续0.1秒）
+            game.triggerScreenShake(5, 0.1);
+            
             // v1.4.0: 金币掉落平衡调整 - 根据怪物境界和等级调整
             // 练气: 1-4金币, 筑基: 2-6金币, 金丹: 3-8金币
             let baseGold = 1;
@@ -150,7 +189,8 @@ class Enemy {
             if (game.activePowerups.quickGold) {
                 goldDrop *= 2;
             }
-            game.gold += goldDrop;
+            // v1.4.3: 使用recordGold记录金币获取统计
+            game.recordGold(goldDrop);
             // v1.2.7: 怪物死亡音效
             game.playSound('hit');
             // v1.4.0: 添加死亡动画

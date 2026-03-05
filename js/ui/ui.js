@@ -24,7 +24,7 @@ function drawUI() {
     ctx.fillStyle = '#fff';
     ctx.fillText(player.hp + '/' + player.maxHp, 130, 44);
     
-    // 攻击 - v1.3.7: 显示攻击力增益
+    // 攻击 - v1.3.7: 显示攻击力增益 - v1.4.3: 显示初始装备
     ctx.fillStyle = '#ffd700';
     let attackText = '攻击: ' + player.attack;
     // v1.3.7: 如果有攻击力增益，显示原始攻击力
@@ -33,6 +33,11 @@ function drawUI() {
         attackText = '攻击: ' + originalAttack + '→' + player.attack;
         // v1.3.7: 攻击力增益高亮显示
         ctx.fillStyle = '#00ff00';
+    }
+    // v1.4.3: 如果有初始装备，显示装备加成
+    if (player.initialEquipment && player.initialEquipment.weapon) {
+        const equip = player.initialEquipment.weapon;
+        attackText += ' [' + equip.name + '+' + equip.attackBonus + ']';
     }
     ctx.fillText(attackText, 20, 60);
     

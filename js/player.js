@@ -9,6 +9,7 @@ const player = {
     hp: 100,
     maxHp: 100,
     attack: 10,
+    baseAttack: 10,  // v1.4.3: 基础攻击力（不含装备）
     speed: 80,   // v1.2.3: 80px/秒（固定值）
     attackCooldown: 0,
     attackRange: 80,
@@ -21,6 +22,14 @@ const player = {
     attackFrame: 0,
     hitFlash: 0,
     isMoving: true,
+    
+    // v1.4.3: 暴击闪烁效果
+    critFlash: 0,
+    
+    // v1.4.3: 初始装备 - 攻击力+2
+    initialEquipment: {
+        weapon: { name: '新手剑', attackBonus: 2 }
+    },
     
     // v1.2.0: Q版水墨风配色（修正后与需求文档一致）
     robeColor: '#f0f5f9',      // 月白色长袍
@@ -70,6 +79,9 @@ const player = {
         if (this.poisonEffect > 0) this.poisonEffect -= dt;
         if (this.slowEffect > 0) this.slowEffect -= dt;
         
+        // v1.4.3: 更新暴击闪烁效果
+        if (this.critFlash > 0) this.critFlash -= dt;
+        
         // v1.3.9: 检测debuff状态并更新视觉效果
         if (this.buffs) {
             this.buffs.forEach(buff => {
@@ -84,7 +96,7 @@ const player = {
         CONFIG.cameraOffset = this.x - 150;
     },
 
-    // v1.1.0: 暴击系统
+    // v1.1.0: 暴击系统 - v1.4.3: 添加暴击闪烁和伤害统计
     attackTarget(enemy) {
         if (this.attackCooldown <= 0) {
             this.attacking = true;
@@ -100,9 +112,14 @@ const player = {
             // v1.2.8: 暴击时添加特效
             if (isCrit) {
                 game.addCritEffect(enemy.x, enemy.y - enemy.height / 2);
+                // v1.4.3: 暴击时玩家角色短暂闪烁（0.2秒内闪烁2次）
+                this.critFlash = 0.2;
             }
             
             enemy.takeDamage(damage);
+            
+            // v1.4.3: 记录伤害统计
+            game.recordDamage(damage);
             
             // v1.2.7: 攻击音效
             game.playSound('attack');
@@ -217,6 +234,11 @@ const player = {
         // 受击闪烁效果
         if (this.hitFlash > 0 && Math.floor(this.hitFlash * 20) % 2 === 0) {
             ctx.globalAlpha = 0.5;
+        }
+        
+        // v1.4.3: 暴击闪烁效果 - 0.2秒内闪烁2次（白色高亮）
+        if (this.critFlash > 0 && Math.floor(this.critFlash * 10) % 2 === 0) {
+            ctx.globalAlpha = 0.7;
         }
         
         // v1.1.0: 月白色长袍身体（圆润Q版）

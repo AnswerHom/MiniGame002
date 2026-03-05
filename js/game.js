@@ -1,4 +1,4 @@
-// ===== v1.1.0 游戏状态 =====
+// ===== v1.4.3 游戏状态 =====
 
 const game = {
     state: 'playing',  // v1.1.0: 直接开始，无需开始界面
@@ -13,6 +13,25 @@ const game = {
     killCount: 0,
     gold: 0,  // v1.3.5: 金币
     startTime: 0,  // v1.2.7: 记录开局时间
+    
+    // v1.4.3: 伤害统计
+    totalDamage: 0,
+    totalGoldEarned: 0,  // v1.4.3: 金币获取统计
+    
+    // v1.4.3: 连杀系统
+    killStreak: 0,
+    lastKillTime: 0,
+    killStreakTimeout: 2000,  // 2秒内击杀算连杀
+    
+    // v1.4.3: 屏幕震动
+    screenShake: {
+        active: false,
+        intensity: 0,
+        duration: 0,
+        timer: 0,
+        offsetX: 0,
+        offsetY: 0
+    }
     // v1.2.7: 音效系统
     soundEnabled: true,
     // v1.2.8: AudioContext初始化（延迟到用户交互）
@@ -30,6 +49,52 @@ const game = {
     
     // v1.3.9: 购买确认提示
     purchaseConfirm: null,
+    
+    // v1.4.3: 触发屏幕震动
+    // 振幅5px，持续0.1秒
+    triggerScreenShake(intensity = 5, duration = 0.1) {
+        this.screenShake.active = true;
+        this.screenShake.intensity = intensity;
+        this.screenShake.duration = duration;
+        this.screenShake.timer = duration;
+    },
+    
+    // v1.4.3: 更新屏幕震动
+    updateScreenShake(dt) {
+        if (this.screenShake.active) {
+            this.screenShake.timer -= dt;
+            if (this.screenShake.timer <= 0) {
+                this.screenShake.active = false;
+                this.screenShake.offsetX = 0;
+                this.screenShake.offsetY = 0;
+            } else {
+                // 随机偏移
+                const progress = 1 - (this.screenShake.timer / this.screenShake.duration);
+                const currentIntensity = this.screenShake.intensity * (1 - progress);
+                this.screenShake.offsetX = (Math.random() - 0.5) * 2 * currentIntensity;
+                this.screenShake.offsetY = (Math.random() - 0.5) * 2 * currentIntensity;
+            }
+        }
+    },
+    
+    // v1.4.3: 连杀系统 - 记录击杀
+    recordKill() {
+        const now = Date.now();
+        if (now - this.lastKillTime < this.killStreakTimeout) {
+            this.killStreak++;
+        } else {
+            this.killStreak = 1;
+        }
+        this.lastKillTime = now;
+    },
+    
+    // v1.4.3: 更新连杀状态（超时重置）
+    updateKillStreak() {
+        const now = Date.now();
+        if (this.killStreak > 0 && now - this.lastKillTime >= this.killStreakTimeout) {
+            this.killStreak = 0;
+        }
+    },
     
     // v1.2.7: 根据游戏进度调整生成间隔
     getAdjustedSpawnInterval() {
@@ -99,7 +164,7 @@ const game = {
         }
     },
     
-    // v1.0.8: 重新开始 - v1.3.7: 游戏结束后状态重置
+    // v1.4.0: 重新开始 - v1.3.7: 游戏结束后状态重置 - v1.4.3: 添加统计重置
     restart() {
         // v1.3.7: 游戏结束时清除所有增益效果
         this.activePowerups = {};
@@ -112,6 +177,13 @@ const game = {
         this.gold = 0;  // v1.3.5: 重置金币
         this.spawnTimer = 0;
         this.damageNumbers = [];
+        
+        // v1.4.3: 重置统计
+        this.totalDamage = 0;
+        this.totalGoldEarned = 0;
+        this.killStreak = 0;
+        this.lastKillTime = 0;
+        
         player.x = 100;
         player.hp = player.maxHp;
         player.exp = 0;
@@ -155,6 +227,29 @@ const game = {
             ctx.fillText(dn.damage, screenX, dn.y);
             ctx.globalAlpha = 1.0;
         });
+    },
+    
+    // v1.4.3: 绘制连杀数
+    drawKillStreak() {
+        if (this.killStreak >= 2) {
+            // 连杀文字显示在玩家上方
+            const screenX = player.x - CONFIG.cameraOffset;
+            const screenY = player.y - player.height - 40;
+            
+            // 发光效果
+            ctx.shadowColor = '#ffd700';
+            ctx.shadowBlur = 10;
+            
+            // 连杀文字
+            ctx.font = 'bold 24px Microsoft YaHei';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#ffd700';
+            ctx.fillText(this.killStreak + '连杀!', screenX + 16, screenY);
+            
+            // 重置阴影
+            ctx.shadowBlur = 0;
+            ctx.textAlign = 'left';
+        }
     },
     
     // v1.2.8: 暴击特效
@@ -357,5 +452,16 @@ const game = {
         ctx.fillText('✓ 购买成功: ' + this.purchaseConfirm.itemName, centerX, centerY + 8);
         
         ctx.textAlign = 'left';
+    },
+    
+    // v1.4.3: 记录造成的伤害
+    recordDamage(damage) {
+        this.totalDamage += damage;
+    },
+    
+    // v1.4.3: 记录获取的金币
+    recordGold(amount) {
+        this.gold += amount;
+        this.totalGoldEarned += amount;
     }
 };
