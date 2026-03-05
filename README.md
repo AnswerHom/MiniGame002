@@ -14,7 +14,8 @@ js/
 ├── scene.js   # 场景模块
 ├── enemy.js   # 怪物模块
 ├── ui/        # UI 界面目录
-│   └── ui.js  # UI 界面
+│   ├── ui.js  # UI 界面
+│   └── shop.js # 商店界面
 └── main.js    # 游戏主循环
 ```
 
