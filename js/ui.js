@@ -161,7 +161,7 @@ function drawGoldDisplay() {
     ctx.textAlign = 'left';
 }
 
-// v1.3.5: 绘制暂停按钮
+// v1.3.5: 绘制暂停按钮（已移除重复定义）
 function drawPauseButton() {
     const btnX = CONFIG.width - 50;
     const btnY = 130;
@@ -184,7 +184,7 @@ function drawPauseButton() {
     ctx.textAlign = 'left';
 }
 
-// v1.3.5: 绘制暂停覆盖层
+// v1.3.5: 绘制暂停覆盖层（已移除重复定义）
 function drawPauseOverlay() {
     if (!game.paused) return;
     
