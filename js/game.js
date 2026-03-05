@@ -17,6 +17,8 @@ const game = {
     // v1.2.8: AudioContext初始化（延迟到用户交互）
     audioCtx: null,
     audioInitialized: false,
+    // v1.3.4: 帮助界面显示
+    showHelp: false,
     
     // v1.2.7: 根据游戏进度调整生成间隔
     getAdjustedSpawnInterval() {

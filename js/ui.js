@@ -42,4 +42,101 @@ function drawUI() {
     ctx.textAlign = 'right';
     ctx.fillText(scene.name, CONFIG.width - 20, 25);
     ctx.textAlign = 'left';
+    
+    // v1.3.4: 音效开关按钮
+    drawSoundButton();
+    
+    // v1.3.4: 帮助按钮
+    drawHelpButton();
+    
+    // v1.3.4: 帮助信息
+    drawHelpInfo();
+}
+
+// v1.3.4: 绘制音效开关按钮
+function drawSoundButton() {
+    const btnX = CONFIG.width - 50;
+    const btnY = 50;
+    const btnSize = 30;
+    
+    // 按钮背景
+    ctx.fillStyle = game.soundEnabled ? '#4a5568' : '#2d3748';
+    ctx.fillRect(btnX, btnY, btnSize, btnSize);
+    
+    // 按钮边框
+    ctx.strokeStyle = '#718096';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(btnX, btnY, btnSize, btnSize);
+    
+    // 音效图标
+    ctx.fillStyle = '#fff';
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(game.soundEnabled ? '🔊' : '🔇', btnX + btnSize/2, btnY + 20);
+    ctx.textAlign = 'left';
+}
+
+// v1.3.4: 绘制帮助按钮
+function drawHelpButton() {
+    const btnX = CONFIG.width - 50;
+    const btnY = 90;
+    const btnSize = 30;
+    
+    // 按钮背景
+    ctx.fillStyle = '#4a5568';
+    ctx.fillRect(btnX, btnY, btnSize, btnSize);
+    
+    // 按钮边框
+    ctx.strokeStyle = '#718096';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(btnX, btnY, btnSize, btnSize);
+    
+    // 帮助图标
+    ctx.fillStyle = '#fff';
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('?', btnX + btnSize/2, btnY + 20);
+    ctx.textAlign = 'left';
+}
+
+// v1.3.4: 绘制帮助信息
+function drawHelpInfo() {
+    if (!game.showHelp) return;
+    
+    // 半透明背景
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
+    
+    // 帮助内容
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    
+    const centerX = CONFIG.width / 2;
+    let y = 80;
+    
+    ctx.font = 'bold 24px Microsoft YaHei';
+    ctx.fillText('游戏帮助', centerX, y);
+    y += 40;
+    
+    ctx.font = '16px Microsoft YaHei';
+    ctx.textAlign = 'left';
+    const lines = [
+        '• 这是一款自动挂机游戏',
+        '• 角色会自动向右移动并战斗',
+        '• 击败怪物获得经验，升级提升属性',
+        '• 境界越高，怪物越强',
+        '• 点击屏幕左下角按钮开关音效',
+        '• 首次点击开始游戏',
+        '• 游戏结束后点击重新开始',
+    ];
+    
+    lines.forEach(line => {
+        ctx.fillText(line, centerX - 150, y);
+        y += 30;
+    });
+    
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#aaa';
+    ctx.fillText('点击任意位置关闭', centerX, y + 20);
+    ctx.textAlign = 'left';
 }

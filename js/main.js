@@ -119,9 +119,32 @@ function startGame() {
 
 // v1.2.2: 点击重新开始
 const gameCanvas = document.getElementById('gameCanvas');
-gameCanvas.addEventListener('click', function() {
+gameCanvas.addEventListener('click', function(e) {
     // v1.2.8: 首次交互时初始化AudioContext
     game.initAudio();
+    
+    // v1.3.4: 如果帮助界面显示中，点击关闭
+    if (game.showHelp) {
+        game.showHelp = false;
+        return;
+    }
+    
+    // v1.3.4: 检查是否点击了音效开关按钮
+    const rect = gameCanvas.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+    
+    // 音效开关按钮 (x: width-50, y: 50)
+    if (clickX >= CONFIG.width - 50 && clickX <= CONFIG.width - 20 && clickY >= 50 && clickY <= 80) {
+        game.soundEnabled = !game.soundEnabled;
+        return;
+    }
+    
+    // 帮助按钮 (x: width-50, y: 90)
+    if (clickX >= CONFIG.width - 50 && clickX <= CONFIG.width - 20 && clickY >= 90 && clickY <= 120) {
+        game.showHelp = true;
+        return;
+    }
     
     if (game.gameOver) {
         game.restart();
