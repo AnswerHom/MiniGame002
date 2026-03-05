@@ -14,6 +14,9 @@ function update(dt) {
     // v1.2.8: 暴击特效更新
     game.updateCritEffects(dt);
     
+    // v1.4.4: 打击火花效果更新
+    game.updateHitEffects(dt);
+    
     // v1.2.8: 升级特效更新
     game.updateLevelUpEffects(dt);
     
@@ -93,6 +96,9 @@ function draw() {
     
     // v1.2.8: 绘制暴击特效
     game.drawCritEffects();
+    
+    // v1.4.4: 绘制打击火花
+    game.drawHitEffects();
     
     // v1.2.8: 绘制升级特效
     game.drawLevelUpEffects();

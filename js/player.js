@@ -57,9 +57,20 @@ const player = {
             this.attackCooldown -= dt;
         }
         if (this.attacking) {
-            this.attackFrame += dt * 15; // v1.1.0: 加快攻击动画速度
+            this.attackFrame += dt * 8; // v1.4.4: 攻击动画速度
+            
+            // v1.4.4: 更新攻击阶段
+            if (this.attackFrame < 0.4) {
+                this.attackPhase = 'windup';  // 前摇
+            } else if (this.attackFrame < 0.7) {
+                this.attackPhase = 'swing';  // 挥动
+            } else {
+                this.attackPhase = 'followthrough';  // 收招
+            }
+            
             if (this.attackFrame >= 1) {
                 this.attacking = false;
+                this.attackPhase = null;
             }
         }
         if (this.hitFlash > 0) {
@@ -101,7 +112,9 @@ const player = {
         if (this.attackCooldown <= 0) {
             this.attacking = true;
             this.attackFrame = 0;
+            this.attackPhase = 'windup';  // v1.4.4: 攻击阶段 - 前摇
             this.attackCooldown = this.attackInterval;
+            this.attackHit = false;  // v1.4.4: 标记是否已命中
             
             const isCrit = Math.random() < this.critRate;
             const damageMult = isCrit ? this.critDamage : 1.0;
@@ -117,6 +130,9 @@ const player = {
             }
             
             enemy.takeDamage(damage);
+            
+            // v1.4.4: 打击火花效果
+            game.addHitEffect(enemy.x, enemy.y - enemy.height / 2, isCrit);
             
             // v1.4.3: 记录伤害统计
             game.recordDamage(damage);
@@ -305,25 +321,61 @@ const player = {
         ctx.fillRect(screenX + 31, screenY - 43, 1, 16);
         ctx.globalAlpha = 1.0;
         
-        // v1.1.0: 攻击动画 - 武器挥动+淡白色残影
+        // v1.1.0: 攻击动画 - v1.4.4: 三段式攻击（windup前摇-swing挥动-followthrough收招）
         if (this.attacking) {
-            const swingAngle = this.attackFrame * Math.PI / 2;
+            // v1.4.4: 根据攻击阶段计算角度
+            let swingAngle;
+            let bodyTilt = 0;
+            let weaponOffsetX = 0;
+            let weaponOffsetY = 0;
+            
+            if (this.attackPhase === 'windup') {
+                // 前摇阶段：身体后仰，武器后拉
+                const progress = this.attackFrame / 0.4;  // 0-0.4
+                swingAngle = -progress * Math.PI / 4;  // 后拉45度
+                bodyTilt = -progress * 0.1;
+                weaponOffsetX = -progress * 10;
+                weaponOffsetY = -progress * 5;
+            } else if (this.attackPhase === 'swing') {
+                // 挥动阶段：武器快速前挥，身体前倾
+                const progress = (this.attackFrame - 0.4) / 0.3;  // 0.4-0.7
+                swingAngle = -Math.PI / 4 + progress * Math.PI * 0.7;  // -45度到+90度
+                bodyTilt = progress * 0.15;
+                weaponOffsetX = progress * 15;
+                weaponOffsetY = progress * 8;
+            } else {
+                // 收招阶段：武器回弹，身体恢复
+                const progress = (this.attackFrame - 0.7) / 0.3;  // 0.7-1.0
+                swingAngle = Math.PI * 0.35 - progress * Math.PI / 4;  // 90度回到45度
+                bodyTilt = 0.15 - progress * 0.15;
+                weaponOffsetX = 15 - progress * 8;
+                weaponOffsetY = 8 - progress * 8;
+            }
+            
+            // v1.4.4: 身体倾斜
+            ctx.save();
+            ctx.translate(screenX + 16, screenY - 24);
+            ctx.rotate(bodyTilt);
+            ctx.translate(-(screenX + 16), -(screenY - 24));
             
             // 残影效果
             ctx.globalAlpha = 0.3;
             for (let i = 1; i <= 3; i++) {
                 ctx.save();
-                ctx.translate(screenX + 16, screenY - 30);
-                ctx.rotate(swingAngle - i * 0.15);
+                ctx.translate(screenX + 16 + weaponOffsetX, screenY - 30 + weaponOffsetY);
+                ctx.rotate(swingAngle - i * 0.1);
                 ctx.fillStyle = '#fff';
                 ctx.fillRect(10, -1, 25, 3);
                 ctx.restore();
             }
             ctx.globalAlpha = 1.0;
             
+            // v1.4.4: 剑光效果
+            this.drawAttackEffect(screenX, screenY, swingAngle, weaponOffsetX, weaponOffsetY);
+            
             // 实际剑挥动
             ctx.save();
-            ctx.translate(screenX + 16, screenY - 30);
+            ctx.translate(screenX + 16 + weaponOffsetX, screenY - 30 + weaponOffsetY);
             ctx.rotate(swingAngle);
             // 剑
             ctx.fillStyle = this.weaponColor;
@@ -334,6 +386,8 @@ const player = {
             ctx.fillRect(12, -0.5, 24, 1);
             ctx.globalAlpha = 1.0;
             ctx.restore();
+            
+            ctx.restore();  // 身体倾斜恢复
         }
         
         // 血条
@@ -343,5 +397,32 @@ const player = {
         ctx.fillRect(screenX + 4, screenY - this.height - 12, 24 * (this.hp / this.maxHp), 5);
         
         ctx.globalAlpha = 1.0;
+    },
+    
+    // v1.4.4: 攻击特效 - 剑光效果和打击火花
+    drawAttackEffect(screenX, screenY, swingAngle, weaponOffsetX, weaponOffsetY) {
+        // 只有在挥动阶段才显示剑光
+        if (this.attackPhase !== 'swing') return;
+        
+        // 剑光线条
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(screenX + 35 + weaponOffsetX, screenY - 30 + weaponOffsetY);
+        ctx.lineTo(screenX + 60 + weaponOffsetX, screenY - 30 + weaponOffsetY);
+        ctx.stroke();
+        
+        // 剑光扩散效果
+        const gradient = ctx.createLinearGradient(screenX + 35, screenY - 38, screenX + 65, screenY - 22);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.6)');
+        gradient.addColorStop(0.5, 'rgba(200, 220, 255, 0.3)');
+        gradient.addColorStop(1, 'rgba(100, 150, 255, 0)');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.moveTo(screenX + 35 + weaponOffsetX, screenY - 38 + weaponOffsetY);
+        ctx.lineTo(screenX + 65 + weaponOffsetX, screenY - 30 + weaponOffsetY);
+        ctx.lineTo(screenX + 35 + weaponOffsetX, screenY - 22 + weaponOffsetY);
+        ctx.closePath();
+        ctx.fill();
     }
 };

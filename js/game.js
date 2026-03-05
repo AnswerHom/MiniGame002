@@ -279,6 +279,48 @@ const game = {
         });
     },
     
+    // v1.4.4: 打击火花效果
+    hitEffects: [],
+    
+    addHitEffect(x, y, isCrit) {
+        this.hitEffects.push({
+            x: x,
+            y: y,
+            life: 0.3,
+            isCrit: isCrit,
+            particles: Array.from({length: isCrit ? 12 : 6}, () => ({
+                angle: Math.random() * Math.PI * 2,
+                speed: 30 + Math.random() * 60,
+                size: isCrit ? 3 + Math.random() * 3 : 2 + Math.random() * 2
+            }))
+        });
+    },
+    
+    updateHitEffects(dt) {
+        this.hitEffects = this.hitEffects.filter(effect => {
+            effect.life -= dt;
+            effect.particles.forEach(p => {
+                p.x = effect.x + Math.cos(p.angle) * p.speed * (0.3 - effect.life);
+                p.y = effect.y + Math.sin(p.angle) * p.speed * (0.3 - effect.life) - 20 * dt;
+            });
+            return effect.life > 0;
+        });
+    },
+    
+    drawHitEffects() {
+        this.hitEffects.forEach(effect => {
+            const screenX = effect.x - CONFIG.cameraOffset;
+            ctx.globalAlpha = effect.life * 3;
+            ctx.fillStyle = effect.isCrit ? '#ffd700' : '#fff';
+            effect.particles.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x - CONFIG.cameraOffset, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1.0;
+        });
+    },
+    
     updateCritEffects(dt) {
         this.critEffects = this.critEffects.filter(effect => {
             effect.life -= dt;
