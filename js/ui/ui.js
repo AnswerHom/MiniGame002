@@ -1,83 +1,50 @@
 // ===== v1.6.0 UI模块 =====
 
 function drawUI() {
-    // v1.6.0: 使用布局规范，四角定位
+    // v1.6.0: 使用布局规范，四角定位 - v3.8.0: 精简为只显示境界/等级/血条/经验条
     const statusPos = getStatusPanelPos();
-    const combatPos = getStatsPanelPos();
     
     ctx.font = '14px Microsoft YaHei';
     ctx.textAlign = 'left';
     
-    // ===== 左上角状态栏 =====
-    // 境界显示
+    // ===== 左上角状态栏 - 只显示必要信息 =====
+    // 第1行：境界
     const realm = getRealm(player.level);
     const realmColor = REALM_COLORS[realm.name] || '#ffffff';
     ctx.fillStyle = realmColor;
-    ctx.fillText('境界: ' + realm.name, statusPos.x, statusPos.y + 10);
+    ctx.fillText('境界: ' + realm.name, statusPos.x, statusPos.y + 16);
     
-    // 等级
-    ctx.fillStyle = '#fff';
-    ctx.fillText('Lv.' + player.level, statusPos.x + 80, statusPos.y + 10);
+    // 第2行：等级
+    ctx.fillStyle = '#ffd700';
+    ctx.fillText('Lv.' + player.level, statusPos.x + 80, statusPos.y + 16);
     
-    // 血条背景
+    // 第3行：血条（120px宽）
     ctx.fillStyle = '#333';
-    ctx.fillRect(statusPos.x, statusPos.y + 18, 100, 8);
-    // 血条 - 颜色渐变（绿到红）
+    ctx.fillRect(statusPos.x, statusPos.y + 24, 120, 12);
     const hpPercent = Math.max(0, player.hp / player.maxHp);
-    let hpColor;
-    if (hpPercent > 0.6) {
-        hpColor = '#44ff44';
-    } else if (hpPercent > 0.3) {
-        hpColor = '#ffaa00';
-    } else {
-        hpColor = '#ff4444';
-    }
+    let hpColor = hpPercent > 0.6 ? '#44ff44' : hpPercent > 0.3 ? '#ffaa00' : '#ff4444';
     ctx.fillStyle = hpColor;
-    ctx.fillRect(statusPos.x, statusPos.y + 18, 100 * hpPercent, 8);
+    ctx.fillRect(statusPos.x, statusPos.y + 24, 120 * hpPercent, 12);
     // 血量数值
     ctx.fillStyle = '#fff';
-    ctx.font = '11px Microsoft YaHei';
-    ctx.fillText(player.hp + '/' + player.maxHp, statusPos.x + 102, statusPos.y + 25);
+    ctx.font = '10px Microsoft YaHei';
+    ctx.fillText(player.hp + '/' + player.maxHp, statusPos.x + 122, statusPos.y + 33);
     ctx.font = '14px Microsoft YaHei';
     
-    // v2.8.0: 经验条
+    // 第4行：经验条（120px宽）
     const expPercent = player.requiredExp > 0 ? player.exp / player.requiredExp : 0;
     ctx.fillStyle = '#333';
-    ctx.fillRect(statusPos.x, statusPos.y + 30, 100, 6);
+    ctx.fillRect(statusPos.x, statusPos.y + 40, 120, 8);
     ctx.fillStyle = '#4a90d9';
-    ctx.fillRect(statusPos.x, statusPos.y + 30, 100 * Math.min(1, expPercent), 6);
-    ctx.font = '10px Microsoft YaHei';
+    ctx.fillRect(statusPos.x, statusPos.y + 40, 120 * Math.min(1, expPercent), 8);
+    // 经验数值
     ctx.fillStyle = '#aaa';
-    ctx.fillText(player.exp + '/' + player.requiredExp, statusPos.x + 102, statusPos.y + 35);
+    ctx.font = '10px Microsoft YaHei';
+    ctx.fillText(player.exp + '/' + player.requiredExp, statusPos.x + 122, statusPos.y + 46);
     ctx.font = '14px Microsoft YaHei';
     
-    // 攻击力
-    ctx.fillStyle = '#ffd700';
-    let attackText = '攻击: ' + player.attack;
-    if (game.activePowerups.doubleAttack) {
-        const originalAttack = Math.floor(player.attack / 2);
-        attackText = '攻击: ' + originalAttack + '→' + player.attack;
-        ctx.fillStyle = '#00ff00';
-    }
-    if (player.initialEquipment && player.initialEquipment.weapon) {
-        const equip = player.initialEquipment.weapon;
-        attackText += ' [' + equip.name + '+' + equip.attackBonus + ']';
-    }
-    ctx.fillText(attackText, statusPos.x, statusPos.y + 42);
-    
-    // 距离
-    ctx.fillStyle = '#00ffff';
-    ctx.fillText('距离: ' + Math.floor(player.x / 10) + '米', statusPos.x, statusPos.y + 58);
-    
-    // v2.1.0: 灵气条显示
-    drawSpiritBar(statusPos);
-    
     // ===== 右上角战斗信息 =====
-    // 金币 - v2.8.0: 只保留金币和距离
-    ctx.fillStyle = '#ffd700';
-    ctx.fillText('💰 ' + game.gold, combatPos.x, combatPos.y + 10);
-    
-    // 距离
+    const combatPos = getStatsPanelPos();
     ctx.fillStyle = '#00ffff';
     ctx.fillText('距离: ' + Math.floor(player.x / 10) + 'm', combatPos.x, combatPos.y + 30);
     
