@@ -55,9 +55,9 @@ const game = {
     showBreakthroughPrompt: false,
     breakthroughEffects: [],  // 突破特效列表
     
-    // v1.4.6: 新手引导系统
+    // v1.4.6: 新手引导系统 - v2.9.0 已禁用
     guide: {
-        shown: false,
+        shown: true,  // v2.9.0: 禁用新手引导
         step: 0,
         steps: [
             { text: '欢迎来到修仙世界！', duration: 2000 },

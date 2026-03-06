@@ -36,7 +36,7 @@ function update(dt) {
     game.updatePurchaseConfirm(dt);
     
     // v1.4.6: 新手引导更新
-    game.updateGuide(dt);
+    // v2.9.0: game.updateGuide(dt); // 禁用新手引导
     
     // v1.4.3: 屏幕震动更新
     game.updateScreenShake(dt);
@@ -156,7 +156,7 @@ function draw() {
     game.drawKillStreak();
     
     // v1.4.6: 绘制新手引导
-    game.drawGuide();
+    // v2.9.0: game.drawGuide(); // 禁用新手引导
     
     // v1.9.0: 绘制剧情系统
     drawStories();
