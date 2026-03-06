@@ -114,6 +114,12 @@ function drawUI() {
     // v1.5.6: 背包按钮
     drawBackpackButton();
     
+    // v2.7.0: 属性按钮
+    drawStatsButton();
+    
+    // v2.7.0: 属性面板
+    drawStatsPanel();
+    
     // v1.5.6: 背包界面
     drawBackpackUI();
     

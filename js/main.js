@@ -29,6 +29,9 @@ function update(dt) {
     // v1.3.6: 增益效果更新
     game.updatePowerups(dt);
     
+    // v2.7.0: 属性面板动画更新
+    if (typeof updateStatsPanel === 'function') updateStatsPanel(dt);
+    
     // v1.3.9: 购买确认提示更新
     game.updatePurchaseConfirm(dt);
     
@@ -330,7 +333,8 @@ function getButtonArea(buttonName) {
         shop: { x: btnPos.x, y: btnPos.y + (btnSize + UI_INTERACTION.buttonSpacing) * 3, width: btnSize, height: btnSize },
         backpack: { x: btnPos.x, y: btnPos.y + (btnSize + UI_INTERACTION.buttonSpacing) * 4, width: btnSize, height: btnSize },
         skill: { x: btnPos.x, y: btnPos.y + (btnSize + UI_INTERACTION.buttonSpacing) * 5, width: btnSize, height: btnSize },
-        beast: { x: btnPos.x, y: btnPos.y + (btnSize + UI_INTERACTION.buttonSpacing) * 6, width: btnSize, height: btnSize }
+        beast: { x: btnPos.x, y: btnPos.y + (btnSize + UI_INTERACTION.buttonSpacing) * 6, width: btnSize, height: btnSize },
+        stats: { x: btnPos.x, y: btnPos.y + (btnSize + UI_INTERACTION.buttonSpacing) * 7, width: btnSize, height: btnSize }
     };
     
     return buttonAreas[buttonName];
@@ -502,6 +506,16 @@ function handleClick(e) {
         return;
     }
     
+    // v2.7.0: 属性按钮
+    const statsArea = getButtonArea('stats');
+    if (isPointInButton(clickX, clickY, statsArea)) {
+        if (!game.paused && !game.showShop && !backpack.isOpen) {
+            triggerButtonFeedback('stats');
+            toggleStatsPanel();
+        }
+        return;
+    }
+    
     // v2.3.0: 灵兽仓库界面点击处理
     if (beastSystem.showWarehouse) {
         // 检查关闭按钮
@@ -597,6 +611,11 @@ function handleClick(e) {
     // v1.8.0: 技能界面点击处理
     if (skillPanel.isOpen) {
         handleSkillPanelClick(clickX, clickY);
+        return;
+    }
+    
+    // v2.7.0: 属性面板点击处理
+    if (typeof handleStatsPanelClick === 'function' && handleStatsPanelClick(clickX, clickY)) {
         return;
     }
     
