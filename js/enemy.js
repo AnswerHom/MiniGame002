@@ -195,6 +195,11 @@ class Enemy {
             player.exp += this.exp;
             game.killCount++;
             
+            // v3.0.0: 物品掉落
+            if (typeof ItemManager !== 'undefined') {
+                ItemManager.dropItem(this);
+            }
+            
             // v1.4.3: 记录连杀
             game.recordKill();
             

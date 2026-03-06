@@ -75,6 +75,12 @@ function update(dt) {
     // 怪物更新
     game.enemies.forEach(enemy => enemy.update(dt));
     
+    // v3.0.0: 物品系统更新
+    if (typeof ItemManager !== 'undefined') {
+        ItemManager.update(dt);
+        ItemManager.checkPickup();
+    }
+    
     // 玩家自动攻击：如果攻击范围内有敌人就攻击，否则移动
     let hasEnemyInRange = false;
     game.enemies.forEach(enemy => {
@@ -124,6 +130,11 @@ function draw() {
     
     // 绘制玩家
     player.draw();
+    
+    // v3.0.0: 绘制掉落物品
+    if (typeof ItemManager !== 'undefined') {
+        ItemManager.draw();
+    }
     
     // 绘制伤害数字
     game.drawDamageNumbers();
