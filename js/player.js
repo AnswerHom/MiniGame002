@@ -224,10 +224,41 @@ const player = {
             this.attackHit = false;  // v1.4.4: 标记是否已命中
             
             const isCrit = Math.random() < this.critRate;
-            const damageMult = isCrit ? this.critDamage : 1.0;
-            const damage = Math.floor(this.attack * damageMult);
+            let damageMult = isCrit ? this.critDamage : 1.0;
             
-            game.addDamageNumber(enemy.x, enemy.y - enemy.height, damage, isCrit);
+            // v2.5.0: 武器特效处理
+            const weapon = WEAPON_SYSTEM[this.weaponType] || WEAPON_SYSTEM.sword;
+            if (weapon.effect === 'combo' && handleWeaponEffect) {
+                damageMult *= handleWeaponEffect('combo', 0, enemy, game.enemies);
+            }
+            
+            let damage = Math.floor(this.attack * damageMult);
+            
+            // v2.5.0: 枪的穿透效果 - 对多个敌人造成伤害
+            if (weapon.effect === 'pierce' && game.enemies) {
+                // 按距离排序敌人
+                const sortedEnemies = game.enemies
+                    .filter(e => e.alive && Math.abs(e.x - enemy.x) < 100)
+                    .sort((a, b) => Math.abs(a.x - player.x) - Math.abs(b.x - player.x));
+                
+                sortedEnemies.forEach((e, index) => {
+                    const pierceDamage = WeaponEffectManager.pierce.getPierceDamage(damage, index);
+                    game.addDamageNumber(e.x, e.y - e.height, pierceDamage, isCrit);
+                    e.takeDamage(pierceDamage);
+                    game.recordDamage(pierceDamage);
+                    if (index === 0) game.addHitEffect(e.x, e.y - e.height / 2, isCrit);
+                });
+            } else {
+                game.addDamageNumber(enemy.x, enemy.y - enemy.height, damage, isCrit);
+                enemy.takeDamage(damage);
+                game.recordDamage(damage);
+                game.addHitEffect(enemy.x, enemy.y - enemy.height / 2, isCrit);
+            }
+            
+            // v2.5.0: 刀的吸血效果
+            if (weapon.effect === 'lifesteal') {
+                WeaponEffectManager.lifesteal.onDamage(damage, enemy);
+            }
             
             // v1.2.8: 暴击时添加特效
             if (isCrit) {
@@ -235,14 +266,6 @@ const player = {
                 // v1.4.3: 暴击时玩家角色短暂闪烁（0.2秒内闪烁2次）
                 this.critFlash = 0.2;
             }
-            
-            enemy.takeDamage(damage);
-            
-            // v1.4.4: 打击火花效果
-            game.addHitEffect(enemy.x, enemy.y - enemy.height / 2, isCrit);
-            
-            // v1.4.3: 记录伤害统计
-            game.recordDamage(damage);
             
             // v1.2.7: 攻击音效
             game.playSound('attack');
