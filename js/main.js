@@ -520,7 +520,7 @@ function handleClick(e) {
     // v2.7.0: 属性按钮
     const statsArea = getButtonArea('stats');
     if (isPointInButton(clickX, clickY, statsArea)) {
-        if (!game.paused && !game.showShop && !backpack.isOpen) {
+        if (!game.paused && !game.showShop && !backpack.isOpen && !skillPanel.isOpen && !beastSystem.showWarehouse && !beastSystem.showBeastArena) {
             triggerButtonFeedback('stats');
             toggleStatsPanel();
         }
