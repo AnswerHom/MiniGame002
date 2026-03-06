@@ -5,40 +5,61 @@ const HEALTH_POTION_VALUE = 15;
 
 // v1.3.6: 商店物品数据 - v1.4.0: 添加生命药水
 function getShopItems() {
+    // v3.2.0: 商店只售卖装备
     return [
-        { id: 'doubleAttack', name: '攻击力翻倍', desc: '30秒内攻击力x2', price: 10, duration: 30 },
-        { id: 'quickGold', name: '金币加成', desc: '30秒内金币x2', price: 8, duration: 30 },
-        { id: 'invincible', name: '无敌模式', desc: '10秒内不受伤害', price: 15, duration: 10 },
-        { id: 'healthPotion', name: '生命药水', desc: '立即恢复15点生命', price: 5, duration: 0 }  // v1.4.0: 新增
+        // 武器
+        { id: 'weapon_sword1', type: 'weapon', name: '新手剑', attackBonus: 2, price: 50 },
+        { id: 'weapon_sword2', type: 'weapon', name: '精钢剑', attackBonus: 5, price: 150 },
+        { id: 'weapon_sword3', type: 'weapon', name: '玄铁剑', attackBonus: 10, price: 400 },
+        { id: 'weapon_sword4', type: 'weapon', name: '青云剑', attackBonus: 20, price: 1000 },
+        // 防具
+        { id: 'armor_1', type: 'armor', name: '布衣', defenseBonus: 2, price: 50 },
+        { id: 'armor_2', type: 'armor', name: '皮甲', defenseBonus: 5, hpBonus: 30, price: 150 },
+        { id: 'armor_3', type: 'armor', name: '铁甲', defenseBonus: 10, hpBonus: 50, price: 400 },
+        { id: 'armor_4', type: 'armor', name: '玄武甲', defenseBonus: 20, hpBonus: 100, price: 1000 },
+        // 饰品
+        { id: 'accessory_1', type: 'accessory', name: '玉佩', hpBonus: 20, price: 100 },
+        { id: 'accessory_2', type: 'accessory', name: '护符', defenseBonus: 3, price: 200 },
+        { id: 'accessory_3', type: 'accessory', name: '灵环', critRateBonus: 0.05, price: 500 }
     ];
 }
 
-// v1.3.6: 购买物品 - v1.3.7: 购买后自动关闭商店 - v1.3.9: 购买确认反馈 - v1.4.0: 生命药水立即回复
+// v3.2.0: 购买物品 - 只支持装备购买
 function purchaseItem(item) {
     if (game.gold >= item.price) {
         game.gold -= item.price;
         
-        // v1.4.0: 生命药水立即回复生命
-        if (item.id === 'healthPotion') {
-            player.hp = Math.min(player.hp + HEALTH_POTION_VALUE, player.maxHp);
-            game.playSound('levelup');
-            // v1.4.0: 购买成功提示
+        // 检查是否已购买过
+        if (!player.purchasedItems) player.purchasedItems = [];
+        if (player.purchasedItems.includes(item.id)) {
             game.purchaseConfirm = {
-                itemName: item.name + ' +' + HEALTH_POTION_VALUE + 'HP',
-                timer: 1.5
+                itemName: '已拥有',
+                timer: 1
             };
-        } else {
-            game.activatePowerup(item.id, item.duration);
-            game.playSound('levelup');
-            // v1.3.7: 购买后自动关闭商店
-            game.showShop = false;
-            
-            // v1.3.9: 购买成功提示（临时显示在下一帧）
-            game.purchaseConfirm = {
-                itemName: item.name,
-                timer: 1.5  // 显示1.5秒
-            };
+            return;
         }
+        
+        // 记录已购买
+        player.purchasedItems.push(item.id);
+        
+        // 应用装备属性
+        if (item.type === 'weapon') {
+            player.attack += item.attackBonus;
+        } else if (item.type === 'armor') {
+            player.defense += item.defenseBonus || 0;
+            if (item.hpBonus) player.maxHp += item.hpBonus;
+        } else if (item.type === 'accessory') {
+            if (item.hpBonus) player.maxHp += item.hpBonus;
+            if (item.defenseBonus) player.defense += item.defenseBonus;
+            if (item.critRateBonus) player.critRate += item.critRateBonus;
+        }
+        
+        game.playSound('levelup');
+        game.purchaseConfirm = {
+            itemName: item.name + ' 装备成功!',
+            timer: 1.5
+        };
+        game.showShop = false;
     }
 }
 
