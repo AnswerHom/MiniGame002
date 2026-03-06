@@ -23,6 +23,9 @@ function update(dt) {
     // v1.4.0: 敌人死亡动画更新
     game.updateDeathEffects(dt);
     
+    // v1.9.1: 屏幕消息更新
+    game.updateMessages(dt);
+    
     // v1.3.6: 增益效果更新
     game.updatePowerups(dt);
     
@@ -122,6 +125,9 @@ function draw() {
     
     // v1.4.0: 绘制敌人死亡动画
     game.drawDeathEffects();
+    
+    // v1.9.1: 绘制屏幕消息
+    game.drawMessages();
     
     // 绘制UI
     drawUI();
@@ -474,4 +480,3 @@ function handleClick(e) {
 }
 
 window.onload = startGame;
-test

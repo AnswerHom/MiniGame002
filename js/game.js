@@ -598,5 +598,37 @@ const game = {
     recordGold(amount) {
         this.gold += amount;
         this.totalGoldEarned += amount;
+    },
+    
+    // v1.9.1: 屏幕消息显示
+    messages: [],
+    
+    showMessage(text, color = '#fff') {
+        this.messages.push({
+            text: text,
+            color: color,
+            life: 2,
+            y: 0
+        });
+    },
+    
+    updateMessages(dt) {
+        this.messages = this.messages.filter(msg => {
+            msg.life -= dt;
+            msg.y -= 20 * dt;
+            return msg.life > 0;
+        });
+    },
+    
+    drawMessages() {
+        this.messages.forEach(msg => {
+            ctx.globalAlpha = Math.min(1, msg.life);
+            ctx.fillStyle = msg.color;
+            ctx.font = 'bold 18px Microsoft YaHei';
+            ctx.textAlign = 'center';
+            ctx.fillText(msg.text, CONFIG.width / 2, 100 + msg.y);
+        });
+        ctx.globalAlpha = 1;
+        ctx.textAlign = 'left';
     }
 };
