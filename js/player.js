@@ -11,6 +11,7 @@ const player = {
     maxHp: 100,
     attack: 10,
     baseAttack: 10,  // v1.4.3: 基础攻击力（不含装备）
+    defense: 0,  // v2.6.0: 防御力
     speed: 80,   // v1.2.3: 80px/秒（固定值）
     attackCooldown: 0,
     attackInterval: 1.2,  // 攻击间隔（秒）
@@ -277,7 +278,9 @@ const player = {
         if (game.activePowerups.invincible) {
             return false;
         }
-        this.hp -= damage;
+        // v2.6.0: 防御力减伤
+        const actualDamage = Math.max(1, damage - this.defense);
+        this.hp -= actualDamage;
         this.hitFlash = 0.2;
         if (this.hp <= 0) {
             this.hp = 0;
@@ -289,10 +292,19 @@ const player = {
     levelUp() {
         this.level++;
         this.exp -= this.requiredExp;
-        this.requiredExp = Math.floor(this.requiredExp * 1.5);
-        this.maxHp = Math.floor(this.maxHp * 1.2);
+        // v2.6.0: 新的成长公式
+        // 生命值：100 × 1.2^(等级-1)
+        // 攻击力：10 + (等级-1) × 2 + (等级-1)^0.5
+        // 防御力：等级-1
+        // 升级经验：100 × 1.5^(等级-1)
+        const baseHp = 100;
+        const baseAttack = 10;
+        this.maxHp = Math.floor(baseHp * Math.pow(1.2, this.level - 1));
         this.hp = this.maxHp;
-        this.attack = Math.floor(this.attack * 1.15);
+        this.attack = Math.floor(baseAttack + (this.level - 1) * 2 + Math.sqrt(this.level - 1));
+        this.defense = this.level - 1;
+        this.requiredExp = Math.floor(100 * Math.pow(1.5, this.level - 1));
+        
         // v1.2.7: 升级音效
         game.playSound('levelup');
         // v1.2.8: 升级特效
