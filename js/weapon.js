@@ -1,38 +1,6 @@
 // v2.5.0: 武器系统扩展 - 三种武器类型与特殊效果
 
 // 武器配置
-const WEAPON_SYSTEM = {
-    // 剑 - 连击效果
-    sword: {
-        name: '剑',
-        baseAttack: 10,
-        attackSpeed: 'medium',
-        color: '#c0c0c0',      // 银白色
-        accentColor: '#fc8181',  // 红色剑穗
-        effect: 'combo',         // 连击效果
-        description: '连击：连续攻击累积连击数，每层+5%伤害，最高5层(25%)'
-    },
-    // 刀 - 吸血效果
-    blade: {
-        name: '刀',
-        baseAttack: 12,
-        attackSpeed: 'fast',
-        color: '#708090',       // 青灰色
-        accentColor: '#dc143c', // 红色刀柄
-        effect: 'lifesteal',    // 吸血效果
-        description: '吸血：攻击伤害的10%转化为自身生命'
-    },
-    // 枪 - 穿透效果
-    spear: {
-        name: '枪',
-        baseAttack: 15,
-        attackSpeed: 'slow',
-        color: '#ffd700',       // 金色
-        accentColor: '#daa520', // 金色装饰
-        effect: 'pierce',       // 穿透效果
-        description: '穿透：攻击可穿透一条直线上的多个敌人'
-    }
-};
 
 // 武器特效管理器
 const WeaponEffectManager = {
