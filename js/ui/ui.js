@@ -40,6 +40,17 @@ function drawUI() {
     ctx.fillText(player.hp + '/' + player.maxHp, statusPos.x + 102, statusPos.y + 25);
     ctx.font = '14px Microsoft YaHei';
     
+    // v2.8.0: 经验条
+    const expPercent = player.requiredExp > 0 ? player.exp / player.requiredExp : 0;
+    ctx.fillStyle = '#333';
+    ctx.fillRect(statusPos.x, statusPos.y + 30, 100, 6);
+    ctx.fillStyle = '#4a90d9';
+    ctx.fillRect(statusPos.x, statusPos.y + 30, 100 * Math.min(1, expPercent), 6);
+    ctx.font = '10px Microsoft YaHei';
+    ctx.fillStyle = '#aaa';
+    ctx.fillText(player.exp + '/' + player.requiredExp, statusPos.x + 102, statusPos.y + 35);
+    ctx.font = '14px Microsoft YaHei';
+    
     // 攻击力
     ctx.fillStyle = '#ffd700';
     let attackText = '攻击: ' + player.attack;
@@ -62,26 +73,13 @@ function drawUI() {
     drawSpiritBar(statusPos);
     
     // ===== 右上角战斗信息 =====
-    // 击杀数
-    ctx.fillStyle = '#ff6666';
-    ctx.fillText('击杀: ' + game.killCount, combatPos.x, combatPos.y + 10);
-    
-    // 伤害统计
-    ctx.fillStyle = '#ff6b6b';
-    ctx.fillText('伤害: ' + game.totalDamage, combatPos.x, combatPos.y + 26);
-    
-    // 金币
+    // 金币 - v2.8.0: 只保留金币和距离
     ctx.fillStyle = '#ffd700';
-    ctx.fillText('💰 ' + game.gold, combatPos.x, combatPos.y + 42);
+    ctx.fillText('💰 ' + game.gold, combatPos.x, combatPos.y + 10);
     
-    // 累计金币
-    ctx.fillStyle = '#ffd700';
-    ctx.fillText('累计: ' + game.totalGoldEarned, combatPos.x, combatPos.y + 58);
-    
-    // 关卡进度
-    const wave = Math.floor(player.x / 1000) + 1;
-    ctx.fillStyle = '#a855f7';
-    ctx.fillText('第 ' + wave + ' 波', combatPos.x, combatPos.y + 74);
+    // 距离
+    ctx.fillStyle = '#00ffff';
+    ctx.fillText('距离: ' + Math.floor(player.x / 10) + 'm', combatPos.x, combatPos.y + 30);
     
     // 场景名称（右上角顶部）
     const scene = getScene(player.x);
