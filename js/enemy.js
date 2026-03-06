@@ -7,7 +7,7 @@
 const ENEMY_TYPES = {
     // 阴魂：白色半透明鬼火，淡淡光晕，圆形
     // 初始HP：15, HP成长：0.05, 初始攻击：5, 攻击成长：0.03
-    阴魂: { hp: 15, hpGrowth: 0.05, attack: 5, attackGrowth: 0.03, exp: 10, speed: 20, attackDistance: 60, stopDistance: 60, color: '#e2e8f0', size: 25, realmColor: '#718096' },
+    阴魂: { hp: 10, hpGrowth: 0.05, attack: 3, attackGrowth: 0.03, exp: 10, speed: 20, attackDistance: 60, stopDistance: 60, color: '#e2e8f0', size: 25, realmColor: '#718096' },
     // 妖狼：灰色毛皮，四足奔跑形态
     // 初始HP：25, HP成长：0.06, 初始攻击：8, 攻击成长：0.04
     妖狼: { hp: 25, hpGrowth: 0.06, attack: 8, attackGrowth: 0.04, exp: 15, speed: 50, attackDistance: 70, stopDistance: 70, color: '#718096', size: 35, realmColor: '#718096' },
@@ -20,7 +20,7 @@ const ENEMY_TYPES = {
     // v1.2.9: 新增怪物
     // 蝴蝶精：彩色翅膀，速度快，血量低
     // 初始HP：12, HP成长：0.04, 初始攻击：4, 攻击成长：0.02
-    蝴蝶精: { hp: 12, hpGrowth: 0.04, attack: 4, attackGrowth: 0.02, exp: 8, speed: 60, attackDistance: 50, stopDistance: 50, color: '#f9a8d4', size: 20, realmColor: '#f9a8d4' },
+    蝴蝶精: { hp: 8, hpGrowth: 0.04, attack: 2, attackGrowth: 0.02, exp: 8, speed: 60, attackDistance: 50, stopDistance: 50, color: '#f9a8d4', size: 20, realmColor: '#f9a8d4' },
     // 毒蛇：绿色身体，三角形头部
     // 初始HP：20, HP成长：0.05, 初始攻击：12, 攻击成长：0.04
     毒蛇: { hp: 20, hpGrowth: 0.05, attack: 12, attackGrowth: 0.04, exp: 15, speed: 35, attackDistance: 45, stopDistance: 45, color: '#22c55e', size: 35, realmColor: '#22c55e' },
@@ -29,7 +29,7 @@ const ENEMY_TYPES = {
     骷髅: { hp: 40, hpGrowth: 0.08, attack: 14, attackGrowth: 0.05, exp: 22, speed: 25, attackDistance: 60, stopDistance: 60, color: '#f5f5f4', size: 38, realmColor: '#f5f5f4' },
     // 蝙蝠：黑色翅膀倒挂
     // 初始HP：15, HP成长：0.04, 初始攻击：6, 攻击成长：0.03
-    蝙蝠: { hp: 15, hpGrowth: 0.04, attack: 6, attackGrowth: 0.03, exp: 10, speed: 40, attackDistance: 55, stopDistance: 55, color: '#1a1a1a', size: 28, realmColor: '#1a1a1a' },
+    蝙蝠: { hp: 10, hpGrowth: 0.04, attack: 4, attackGrowth: 0.03, exp: 10, speed: 40, attackDistance: 55, stopDistance: 55, color: '#1a1a1a', size: 28, realmColor: '#1a1a1a' },
     // 魔藤：紫色藤蔓，地面生长
     // 初始HP：30, HP成长：0.06, 初始攻击：15, 攻击成长：0.05
     魔藤: { hp: 30, hpGrowth: 0.06, attack: 15, attackGrowth: 0.05, exp: 18, speed: 15, attackDistance: 40, stopDistance: 40, color: '#805ad5', size: 32, realmColor: '#805ad5' },
