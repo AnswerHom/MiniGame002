@@ -24,8 +24,8 @@ function getStatsPanelPos() {
 // v1.6.0: 右侧按钮组位置（右上角，战斗信息下方）
 function getRightButtonsStartPos() {
     return {
-        x: CONFIG.width - UI_SAFE_ZONE.right - UI_INTERACTION.minButtonSize,
-        y: UI_SAFE_ZONE.top + 5 + 100  // 状态栏高度 + 间距
+        x: CONFIG.width - UI_SAFE_ZONE.right - UI_INTERACTION.minHitArea,
+        y: UI_SAFE_ZONE.top + 5 + 60  // 状态栏高度 + 间距，紧凑排列
     };
 }
 
