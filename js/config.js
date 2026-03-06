@@ -17,10 +17,10 @@ const UI_SAFE_ZONE = {
 };
 
 const UI_INTERACTION = {
-    minButtonSize: 44,      // 最小按钮尺寸 44px
-    buttonSpacing: 20,       // 按钮间距 20px（防误触）
-    feedbackTime: 100,        // 反馈时间 100ms
-    clickPadding: 10          // 点击区域扩展 padding
+    minButtonSize: 36,      // 视觉按钮尺寸 36px
+    buttonSpacing: 15,       // 按钮间距 15px
+    feedbackTime: 100,      // 反馈时间 100ms
+    clickPadding: 10         // 点击区域扩展 padding
 };
 
 const UI_LAYERS = {

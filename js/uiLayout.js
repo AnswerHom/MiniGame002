@@ -1,33 +1,3 @@
-// ===== v1.6.0 UI布局与交互规范 =====
-
-// v1.6.0: 优化安全区定义，解决UI重叠问题
-const UI_SAFE_ZONE = {
-    top: 15,       // 顶部安全边距（紧凑）
-    bottom: 80,   // 底部安全边距（预留操作区）
-    left: 15,      // 左侧安全边距
-    right: 15      // 右侧安全边距
-};
-
-// 交互优化常量
-const UI_INTERACTION = {
-    minButtonSize: 44,      // 最小按钮尺寸 44px
-    buttonSpacing: 20,      // 按钮间距 20px（防误触）
-    feedbackTime: 100,      // 反馈时间 100ms
-    clickPadding: 10        // 点击区域扩展 padding
-};
-
-// v1.6.0: 层级分离定义（优化）
-const UI_LAYERS = {
-    SCENE: 0,        // 游戏场景、背景、血条
-    MIDDLE: 10,      // 角色、怪物
-    UI_BASE: 50,     // 基础UI信息（境界、等级等）
-    UI_COMBAT: 60,   // 战斗信息（击杀、伤害等）
-    UI_BUTTONS: 70,  // 交互按钮
-    UI_POPUP: 100,   // 弹窗、遮罩
-    UI_FEEDBACK: 110 // 飘字、反馈
-};
-
-// v1.6.0: 四角定位 - 状态栏位置（左上角）
 function getStatusPanelPos() {
     return {
         x: UI_SAFE_ZONE.left + 5,

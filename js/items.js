@@ -1,21 +1,5 @@
 // v3.0.0: 物品系统 - 回血道具与BUFF增益道具
-
-// 物品配置
-const ITEM_SYSTEM = {
-    // 回血道具
-    healthPotion: {
-        small: { name: '初级血瓶', hp: 20, rarity: 1 },
-        medium: { name: '中级血瓶', hp: 50, rarity: 2 },
-        large: { name: '高级血瓶', hp: 100, rarity: 3 }
-    },
-    // BUFF增益道具
-    buff: {
-        attackBoost: { name: '攻击强化', effect: 'attack', value: 0.5, duration: 30, rarity: 2 },
-        defenseBoost: { name: '防御强化', effect: 'defense', value: 0.5, duration: 30, rarity: 2 },
-        healthBlessing: { name: '生命祝福', effect: 'maxHp', value: 0.5, duration: 60, rarity: 3 },
-        speedBoost: { name: '速度激发', effect: 'speed', value: 0.3, duration: 30, rarity: 2 }
-    }
-};
+// 物品配置已在 config.js 中定义
 
 // 物品管理器
 const ItemManager = {
