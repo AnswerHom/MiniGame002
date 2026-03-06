@@ -6,9 +6,14 @@ let statsPanelAnimation = 0;  // 0-1 动画进度
 
 // 绘制属性按钮
 function drawStatsButton() {
-    const btnX = CONFIG.width - 50;
-    const btnY = 130;
-    const btnSize = 30;
+    // 使用与 getButtonArea 一致的位置计算
+    const btnPos = {
+        x: CONFIG.width - UI_SAFE_ZONE.right - UI_INTERACTION.minButtonSize,
+        y: UI_SAFE_ZONE.top + 5 + 100 + (UI_INTERACTION.minButtonSize + UI_INTERACTION.buttonSpacing) * 7
+    };
+    const btnX = btnPos.x;
+    const btnY = btnPos.y;
+    const btnSize = UI_INTERACTION.minButtonSize;
     
     // 按钮背景
     ctx.fillStyle = showStatsPanel ? '#4CAF50' : '#4a5568';
