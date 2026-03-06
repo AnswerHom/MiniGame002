@@ -168,3 +168,15 @@ const DISTANCE_CONFIG = {
     MONSTER_CHASE: 250,        // 25米 - 怪物追击距离
     MONSTER_ATTACK: 40         // 4米 - 怪物攻击距离
 };
+
+
+// ===== 弹窗统一配置 =====
+const POPUP_CONFIG = {
+    maskColor: 'rgba(0,0,0,0.7)',
+    borderColor: '#ffd700',
+    borderWidth: 2,
+    borderRadius: 10,
+    animDuration: 0.2,
+    closeOnMaskClick: true,
+    closeOnEsc: true
+};
