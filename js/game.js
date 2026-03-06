@@ -51,6 +51,10 @@ const game = {
     // v1.3.9: 购买确认提示
     purchaseConfirm: null,
     
+    // v2.1.0: 灵气突破系统
+    showBreakthroughPrompt: false,
+    breakthroughEffects: [],  // 突破特效列表
+    
     // v1.4.6: 新手引导系统
     guide: {
         shown: false,
@@ -194,6 +198,7 @@ const game = {
         this.gold = 0;  // v1.3.5: 重置金币
         this.spawnTimer = 0;
         this.damageNumbers = [];
+        this.breakthroughEffects = [];  // v2.1.0: 突破特效
         
         // v1.4.3: 重置统计
         this.totalDamage = 0;
@@ -214,16 +219,37 @@ const game = {
         requestAnimationFrame(gameLoop);
     },
     
-    // v1.4.0: 暴击视觉反馈 - 红色+更大字号 - v1.4.6: 金币反馈
-    addDamageNumber(x, y, damage, isCrit, isGold = false) {
+    // v1.4.0: 暴击视觉反馈 - 红色+更大字号 - v1.4.6: 金币反馈 - v2.1.0: 灵气反馈
+    addDamageNumber(x, y, damage, isCrit, isGold = false, color = null, isSpirit = false) {
         this.damageNumbers.push({
             x: x,
             y: y - 20,  // v1.3.9: 向上偏移20px
             damage: damage,
             isCrit: isCrit,
             isGold: isGold,
+            isSpirit: isSpirit,  // v2.1.0: 灵气标识
+            color: color,        // v2.1.0: 自定义颜色
             life: 1.0,  // 1秒生命周期
             vy: -30     // 向上飘动速度
+        });
+    },
+    
+    // v2.1.0: 添加突破特效
+    addBreakthroughEffect(x, y) {
+        this.breakthroughEffects.push({
+            x: x,
+            y: y,
+            life: 1.5,  // 1.5秒特效
+            scale: 0.5
+        });
+    },
+    
+    // v2.1.0: 更新突破特效
+    updateBreakthroughEffects(dt) {
+        this.breakthroughEffects = this.breakthroughEffects.filter(effect => {
+            effect.life -= dt;
+            effect.scale += dt * 2;  // 扩散效果
+            return effect.life > 0;
         });
     },
     
@@ -290,12 +316,17 @@ const game = {
         }
     },
     
-    // v1.0.2: 绘制伤害数字 - v1.4.0: 暴击显示为红色+更大字号 - v1.4.6: 金币显示为黄色
+    // v1.0.2: 绘制伤害数字 - v1.4.0: 暴击显示为红色+更大字号 - v1.4.6: 金币显示为黄色 - v2.1.0: 灵气显示
     drawDamageNumbers() {
         this.damageNumbers.forEach(dn => {
             const screenX = dn.x - CONFIG.cameraOffset;
-            // v1.4.6: 金币数字使用特殊颜色
-            if (dn.isGold) {
+            // v2.1.0: 灵气数字使用自定义颜色
+            if (dn.isSpirit && dn.color) {
+                ctx.font = 'bold 14px Microsoft YaHei';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = dn.color;
+            } else if (dn.isGold) {
+                // v1.4.6: 金币数字使用特殊颜色
                 ctx.font = 'bold 16px Microsoft YaHei';
                 ctx.textAlign = 'center';
                 ctx.fillStyle = '#ffd700'; // 金色
@@ -554,6 +585,46 @@ const game = {
             ctx.fillStyle = '#ffd700';
             ctx.textAlign = 'center';
             ctx.fillText('升级!', screenX, effect.y - 60 - progress * 20);
+            
+            ctx.globalAlpha = 1.0;
+        });
+    },
+    
+    // v2.1.0: 绘制突破特效
+    drawBreakthroughEffects() {
+        this.breakthroughEffects.forEach(effect => {
+            const screenX = effect.x - CONFIG.cameraOffset;
+            const progress = 1 - effect.life / 1.5;
+            
+            // 金色光柱
+            ctx.globalAlpha = effect.life * 0.8;
+            const gradient = ctx.createLinearGradient(screenX, effect.y - 150, screenX, effect.y);
+            gradient.addColorStop(0, 'rgba(255, 215, 0, 0)');
+            gradient.addColorStop(0.3, 'rgba(255, 215, 0, 0.6)');
+            gradient.addColorStop(0.7, 'rgba(255, 165, 0, 0.6)');
+            gradient.addColorStop(1, 'rgba(255, 100, 0, 0)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(screenX - 30 * effect.scale, effect.y - 150 * effect.scale, 60 * effect.scale, 150 * effect.scale);
+            
+            // 扩散光环
+            const ringRadius = (1 - progress) * 50;
+            ctx.strokeStyle = `rgba(255, 215, 0, ${effect.life * 0.8})`;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(screenX, effect.y - 30, ringRadius, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // 粒子效果
+            for (let i = 0; i < 8; i++) {
+                const angle = (Date.now() / 500 + i * Math.PI / 4) % (Math.PI * 2);
+                const radius = ringRadius + 10 + Math.sin(Date.now() / 200 + i) * 10;
+                const px = screenX + Math.cos(angle) * radius;
+                const py = effect.y - 30 + Math.sin(angle) * radius;
+                ctx.fillStyle = `rgba(255, 255, 200, ${effect.life})`;
+                ctx.beginPath();
+                ctx.arc(px, py, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
             
             ctx.globalAlpha = 1.0;
         });

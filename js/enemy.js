@@ -235,6 +235,21 @@ class Enemy {
                 }
             }
             
+            // v2.1.0: 灵气掉落
+            const spiritConfig = this.isBoss ? SPIRIT_SYSTEM.spiritDrop.boss : 
+                               (this.isElite ? SPIRIT_SYSTEM.spiritDrop.elite : SPIRIT_SYSTEM.spiritDrop.normal);
+            const spiritDrop = Math.floor(spiritConfig.min + Math.random() * (spiritConfig.max - spiritConfig.min + 1));
+            const actualSpirit = player.addSpirit(spiritDrop);
+            
+            // 灵气获取视觉反馈 - 飘字效果
+            const realmName = player.getRealmName();
+            const multiplier = SPIRIT_SYSTEM.realmSpiritMultiplier[realmName] || 1.0;
+            if (multiplier > 1) {
+                game.addDamageNumber(this.x + this.width / 2, this.y - this.height - 40, '+' + actualSpirit + '灵气', false, false, '#00ffff', true);
+            } else {
+                game.addDamageNumber(this.x + this.width / 2, this.y - this.height - 40, '+' + actualSpirit + '灵气', false, false, '#00ffff', true);
+            }
+            
             // v1.2.7: 怪物死亡音效
             game.playSound('hit');
             // v1.4.0: 添加死亡动画

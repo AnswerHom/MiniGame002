@@ -51,6 +51,10 @@ const player = {
     ribbon: true,              // 飘带效果
     hairDetail: true,          // 精细头发
     
+    // v2.1.0: 灵气修炼系统
+    spirit: 0,           // 当前灵气值
+    maxSpirit: 0,        // 当前境界突破所需灵气
+    
     // v1.5.3: 攻击动画参数
     attackAnimation: {
         windUp: 0.15,          // 前摇时间(秒)
@@ -69,6 +73,89 @@ const player = {
     
     getRealm() {
         return getRealm(this.level);
+    },
+    
+    // v2.1.0: 获取当前境界名称
+    getRealmName() {
+        return this.getRealm().name;
+    },
+    
+    // v2.1.0: 获取当前境界等级
+    getRealmLevel() {
+        return REALM_LEVEL_MAP[this.getRealmName()] || 1;
+    },
+    
+    // v2.1.0: 获取突破所需灵气
+    getRequiredSpirit() {
+        const realmName = this.getRealmName();
+        return SPIRIT_SYSTEM.realmSpiritRequired[realmName] || 0;
+    },
+    
+    // v2.1.0: 添加灵气
+    addSpirit(amount) {
+        const realmName = this.getRealmName();
+        const multiplier = SPIRIT_SYSTEM.realmSpiritMultiplier[realmName] || 1.0;
+        const actualAmount = Math.floor(amount * multiplier);
+        
+        this.spirit += actualAmount;
+        
+        // 检查是否可以突破
+        this.checkBreakthrough();
+        
+        return actualAmount;
+    },
+    
+    // v2.1.0: 检查是否可以突破
+    checkBreakthrough() {
+        const required = this.getRequiredSpirit();
+        if (required > 0 && this.spirit >= required) {
+            // 可以突破，显示提示
+            game.showBreakthroughPrompt = true;
+        }
+    },
+    
+    // v2.1.0: 执行境界突破
+    breakthrough() {
+        const required = this.getRequiredSpirit();
+        const currentRealmLevel = this.getRealmLevel();
+        
+        if (required > 0 && this.spirit >= required) {
+            // 消耗灵气
+            this.spirit -= required;
+            
+            // 提升境界（境界系统已通过等级提升，这里主要是触发特效）
+            game.addBreakthroughEffect(this.x, this.y - this.height);
+            game.playSound('levelup');
+            
+            // 显示突破成功提示
+            const newRealm = REALMS[currentRealmLevel] ? REALMS[currentRealmLevel].name : this.getRealmName();
+            game.showMessage('境界突破成功！突破至 ' + newRealm, '#ffd700');
+            
+            // 重新计算属性加成
+            this.applyRealmBonus();
+            
+            // 隐藏突破提示
+            game.showBreakthroughPrompt = false;
+            
+            return true;
+        }
+        return false;
+    },
+    
+    // v2.1.0: 应用境界属性加成
+    applyRealmBonus() {
+        const realmName = this.getRealmName();
+        const bonus = SPIRIT_SYSTEM.realmAttributeBonus[realmName] || { hp: 1.0, attack: 1.0, speed: 1.0 };
+        
+        // 保存基础值
+        const baseHp = 100;
+        const baseAttack = 10;
+        
+        // 应用加成
+        this.maxHp = Math.floor(baseHp * bonus.hp * (1 + (this.level - 1) * 0.2));
+        this.hp = this.maxHp;
+        this.attack = Math.floor(baseAttack * bonus.attack * (1 + (this.level - 1) * 0.15));
+        this.speed = Math.floor(80 * bonus.speed);
     },
 
     update(dt) {

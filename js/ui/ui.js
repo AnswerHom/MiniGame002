@@ -58,6 +58,9 @@ function drawUI() {
     ctx.fillStyle = '#00ffff';
     ctx.fillText('距离: ' + Math.floor(player.x / 10) + '米', statusPos.x, statusPos.y + 58);
     
+    // v2.1.0: 灵气条显示
+    drawSpiritBar(statusPos);
+    
     // ===== 右上角战斗信息 =====
     // 击杀数
     ctx.fillStyle = '#ff6666';
@@ -119,6 +122,9 @@ function drawUI() {
     
     // v1.8.0: 技能界面
     drawSkillPanelUI();
+    
+    // v2.1.0: 突破提示弹窗
+    drawBreakthroughPrompt();
 }
 
 // v1.3.4: 绘制音效开关按钮 - v1.5.2: 使用布局规范，按钮尺寸≥44px - v1.6.0: 优化位置
@@ -303,3 +309,88 @@ function drawPauseOverlay() {
 
 // ===== 境界系统 =====
 // 境界配置已移至 config.js
+
+// v2.1.0: 绘制灵气条
+function drawSpiritBar(statusPos) {
+    const required = player.getRequiredSpirit();
+    if (required <= 0) return;  // 满境界不需要显示
+    
+    const barX = statusPos.x;
+    const barY = statusPos.y + 68;
+    const barWidth = 100;
+    const barHeight = 8;
+    
+    // 灵气条背景
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(barX, barY, barWidth, barHeight);
+    
+    // 灵气条边框
+    ctx.strokeStyle = '#4a4a6a';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(barX, barY, barWidth, barHeight);
+    
+    // 灵气条进度
+    const spiritPercent = Math.min(1, player.spirit / required);
+    const gradient = ctx.createLinearGradient(barX, barY, barX + barWidth, barY);
+    gradient.addColorStop(0, '#00ffff');
+    gradient.addColorStop(1, '#0088ff');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(barX + 1, barY + 1, (barWidth - 2) * spiritPercent, barHeight - 2);
+    
+    // 灵气数值显示
+    ctx.fillStyle = '#00ffff';
+    ctx.font = '11px Microsoft YaHei';
+    ctx.fillText(player.spirit + '/' + required, barX + barWidth + 5, barY + 7);
+    
+    // 突破提示（灵气满时）
+    if (player.spirit >= required) {
+        ctx.fillStyle = '#ffd700';
+        ctx.font = 'bold 12px Microsoft YaHei';
+        ctx.fillText('可突破!', barX + barWidth + 5, barY + 7);
+    }
+}
+
+// v2.1.0: 绘制突破提示弹窗
+function drawBreakthroughPrompt() {
+    if (!game.showBreakthroughPrompt) return;
+    
+    // 半透明背景
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
+    
+    // 弹窗背景
+    const boxWidth = 300;
+    const boxHeight = 150;
+    const boxX = (CONFIG.width - boxWidth) / 2;
+    const boxY = (CONFIG.height - boxHeight) / 2;
+    
+    // 渐变背景
+    const gradient = ctx.createLinearGradient(boxX, boxY, boxX, boxY + boxHeight);
+    gradient.addColorStop(0, '#2d1f4e');
+    gradient.addColorStop(1, '#1a1a2e');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+    
+    // 边框
+    ctx.strokeStyle = '#ffd700';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+    
+    // 标题
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 24px Microsoft YaHei';
+    ctx.textAlign = 'center';
+    ctx.fillText('🎉 境界突破', CONFIG.width / 2, boxY + 40);
+    
+    // 提示文字
+    ctx.fillStyle = '#fff';
+    ctx.font = '16px Microsoft YaHei';
+    ctx.fillText('灵气已满，可以突破境界!', CONFIG.width / 2, boxY + 75);
+    
+    // 按钮提示
+    ctx.fillStyle = '#00ffff';
+    ctx.font = '14px Microsoft YaHei';
+    ctx.fillText('点击任意位置突破', CONFIG.width / 2, boxY + 110);
+    
+    ctx.textAlign = 'left';
+}

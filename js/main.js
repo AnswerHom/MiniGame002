@@ -38,6 +38,9 @@ function update(dt) {
     // v1.4.3: 屏幕震动更新
     game.updateScreenShake(dt);
     
+    // v2.1.0: 突破特效更新
+    game.updateBreakthroughEffects(dt);
+    
     // v1.5.6: 背包动画更新
     updateBackpackAnim(dt);
     
@@ -122,6 +125,9 @@ function draw() {
     
     // v1.2.8: 绘制升级特效
     game.drawLevelUpEffects();
+    
+    // v2.1.0: 绘制突破特效
+    game.drawBreakthroughEffects();
     
     // v1.4.0: 绘制敌人死亡动画
     game.drawDeathEffects();
@@ -210,6 +216,11 @@ function startGame() {
     // v1.2.7: 玩家初始位置优化 - 从x=50开始
     player.x = 50;
     player.hp = player.maxHp;
+    
+    // v2.1.0: 初始化灵气系统和境界属性加成
+    player.spirit = 0;
+    player.applyRealmBonus();
+    game.showBreakthroughPrompt = false;
     player.exp = 0;
     player.level = 1;
     player.isMoving = true;
@@ -355,6 +366,12 @@ function handleClick(e) {
     // 如果帮助界面显示中，点击关闭
     if (game.showHelp) {
         game.showHelp = false;
+        return;
+    }
+    
+    // v2.1.0: 境界突破提示显示中，点击触发突破
+    if (game.showBreakthroughPrompt) {
+        player.breakthrough();
         return;
     }
     
