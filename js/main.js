@@ -50,6 +50,9 @@ function update(dt) {
     // v1.9.0: 剧情系统更新
     updateStories(dt);
     
+    // v2.3.0: 灵兽系统更新
+    beastSystem.updateHatching(dt);
+    
     // v1.4.3: 连杀状态更新
     game.updateKillStreak();
     
@@ -79,6 +82,11 @@ function update(dt) {
             hasEnemyInRange = true;
         }
     });
+    
+    // v2.3.0: 灵兽自动攻击敌人
+    if (beastSystem.getActiveBeast()) {
+        beastSystem.beastAttack(game.enemies);
+    }
     
     // 玩家根据是否有敌人在攻击范围内决定是否移动
     player.isMoving = !hasEnemyInRange;
@@ -246,7 +254,7 @@ document.addEventListener('keydown', function() {
     game.initAudio();
 });
 
-// v1.3.5: 暂停功能 - ESC键 - v1.3.9: 商店快捷键 B键
+// v1.3.5: 暂停功能 - ESC键 - v1.3.9: 商店快捷键 B键 - v2.3.0: 灵兽快捷键 P键
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape' && !game.gameOver) {
         game.paused = !game.paused;
@@ -259,6 +267,15 @@ document.addEventListener('keydown', function(e) {
     // v1.3.9: 商店快捷键 B键
     if ((e.key === 'b' || e.key === 'B') && !game.gameOver) {
         game.showShop = !game.showShop;
+    }
+    // v2.3.0: 灵兽快捷键 P键
+    if ((e.key === 'p' || e.key === 'P') && !game.gameOver) {
+        if (beastSystem.showWarehouse || beastSystem.showBeastArena) {
+            beastSystem.showWarehouse = false;
+            beastSystem.showBeastArena = false;
+        } else {
+            beastSystem.showWarehouse = true;
+        }
     }
 });
 
@@ -312,7 +329,8 @@ function getButtonArea(buttonName) {
         pause: { x: btnPos.x, y: btnPos.y + (btnSize + UI_INTERACTION.buttonSpacing) * 2, width: btnSize, height: btnSize },
         shop: { x: btnPos.x, y: btnPos.y + (btnSize + UI_INTERACTION.buttonSpacing) * 3, width: btnSize, height: btnSize },
         backpack: { x: btnPos.x, y: btnPos.y + (btnSize + UI_INTERACTION.buttonSpacing) * 4, width: btnSize, height: btnSize },
-        skill: { x: btnPos.x, y: btnPos.y + (btnSize + UI_INTERACTION.buttonSpacing) * 5, width: btnSize, height: btnSize }
+        skill: { x: btnPos.x, y: btnPos.y + (btnSize + UI_INTERACTION.buttonSpacing) * 5, width: btnSize, height: btnSize },
+        beast: { x: btnPos.x, y: btnPos.y + (btnSize + UI_INTERACTION.buttonSpacing) * 6, width: btnSize, height: btnSize }
     };
     
     return buttonAreas[buttonName];
@@ -463,6 +481,110 @@ function handleClick(e) {
             triggerButtonFeedback('skill');
             toggleSkillPanel();
         }
+        return;
+    }
+    
+    // v2.3.0: 灵兽按钮
+    const beastArea = getButtonArea('beast');
+    if (isPointInButton(clickX, clickY, beastArea)) {
+        if (!game.paused && !game.showShop && !backpack.isOpen) {
+            triggerButtonFeedback('beast');
+            // 切换灵兽仓库/灵兽栏显示
+            if (beastSystem.showWarehouse) {
+                beastSystem.showWarehouse = false;
+                beastSystem.showBeastArena = true;
+            } else if (beastSystem.showBeastArena) {
+                beastSystem.showBeastArena = false;
+            } else {
+                beastSystem.showWarehouse = true;
+            }
+        }
+        return;
+    }
+    
+    // v2.3.0: 灵兽仓库界面点击处理
+    if (beastSystem.showWarehouse) {
+        // 检查关闭按钮
+        const panelWidth = 360;
+        const panelHeight = 380;
+        const panelX = (CONFIG.width - panelWidth) / 2;
+        const panelY = (CONFIG.height - panelHeight) / 2;
+        
+        // 关闭按钮
+        if (clickX >= panelX + panelWidth - 45 && clickX <= panelX + panelWidth - 15 &&
+            clickY >= panelY + 10 && clickY <= panelY + 35) {
+            beastSystem.showWarehouse = false;
+            return;
+        }
+        
+        // 切换到灵兽栏按钮
+        if (clickX >= panelX + 20 && clickX <= panelX + 160 &&
+            clickY >= panelY + panelHeight - 50 && clickY <= panelY + panelHeight - 15) {
+            beastSystem.showWarehouse = false;
+            beastSystem.showBeastArena = true;
+            return;
+        }
+        
+        // 检查灵兽蛋点击
+        const eggs = beastSystem.getEggs();
+        const startY = panelY + 85;
+        const itemHeight = 60;
+        
+        for (let i = 0; i < eggs.length && i < 4; i++) {
+            const egg = eggs[i];
+            const itemY = startY + i * itemHeight;
+            
+            if (clickX >= panelX + 15 && clickX <= panelX + panelWidth - 15 &&
+                clickY >= itemY && clickY <= itemY + itemHeight - 5) {
+                // 开始孵化
+                beastSystem.startHatch(egg.id);
+                return;
+            }
+        }
+        
+        return;
+    }
+    
+    // v2.3.0: 灵兽栏界面点击处理
+    if (beastSystem.showBeastArena) {
+        // 检查关闭按钮
+        const panelWidth = 360;
+        const panelHeight = 380;
+        const panelX = (CONFIG.width - panelWidth) / 2;
+        const panelY = (CONFIG.height - panelHeight) / 2;
+        
+        // 关闭按钮
+        if (clickX >= panelX + panelWidth - 45 && clickX <= panelX + panelWidth - 15 &&
+            clickY >= panelY + 10 && clickY <= panelY + 35) {
+            beastSystem.showBeastArena = false;
+            return;
+        }
+        
+        // 切换到仓库按钮
+        if (clickX >= panelX + 20 && clickX <= panelX + 160 &&
+            clickY >= panelY + panelHeight - 50 && clickY <= panelY + panelHeight - 15) {
+            beastSystem.showBeastArena = false;
+            beastSystem.showWarehouse = true;
+            return;
+        }
+        
+        // 检查灵兽点击（选择伙伴）
+        const beasts = beastSystem.getBeasts();
+        const startY = panelY + 60;
+        const itemHeight = 70;
+        
+        for (let i = 0; i < beasts.length && i < 4; i++) {
+            const beast = beasts[i];
+            const itemY = startY + i * itemHeight;
+            
+            if (clickX >= panelX + 15 && clickX <= panelX + panelWidth - 15 &&
+                clickY >= itemY && clickY <= itemY + itemHeight - 5) {
+                // 选择伙伴
+                beastSystem.selectPartner(beast.id);
+                return;
+            }
+        }
+        
         return;
     }
     

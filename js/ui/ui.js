@@ -125,6 +125,18 @@ function drawUI() {
     
     // v2.1.0: 突破提示弹窗
     drawBreakthroughPrompt();
+    
+    // v2.3.0: 灵兽按钮
+    drawBeastButton();
+    
+    // v2.3.0: 灵兽仓库界面
+    drawBeastWarehouseUI();
+    
+    // v2.3.0: 灵兽栏界面
+    drawBeastArenaUI();
+    
+    // v2.3.0: 孵化进度条
+    beastSystem.drawHatchProgress();
 }
 
 // v1.3.4: 绘制音效开关按钮 - v1.5.2: 使用布局规范，按钮尺寸≥44px - v1.6.0: 优化位置
@@ -391,6 +403,270 @@ function drawBreakthroughPrompt() {
     ctx.fillStyle = '#00ffff';
     ctx.font = '14px Microsoft YaHei';
     ctx.fillText('点击任意位置突破', CONFIG.width / 2, boxY + 110);
+    
+    ctx.textAlign = 'left';
+}
+
+// ===== v2.3.0 灵兽系统 UI =====
+
+// v2.3.0: 绘制灵兽按钮
+function drawBeastButton() {
+    const btnPos = getRightButtonsStartPos();
+    const btnX = btnPos.x;
+    // 计算位置：音效(0) + 帮助(1) + 暂停(2) + 商店(3) + 背包(4) + 技能(5) + 灵兽(6)
+    const btnY = btnPos.y + (UI_INTERACTION.minButtonSize + UI_INTERACTION.buttonSpacing) * 6;
+    const btnSize = UI_INTERACTION.minButtonSize;
+    
+    // 按钮背景
+    ctx.fillStyle = beastSystem.showWarehouse || beastSystem.showBeastArena ? '#6b46c1' : '#4a5568';
+    ctx.fillRect(btnX, btnY, btnSize, btnSize);
+    
+    // 按钮边框
+    ctx.strokeStyle = '#9f7aea';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(btnX, btnY, btnSize, btnSize);
+    
+    // 灵兽图标
+    ctx.fillStyle = '#fff';
+    ctx.font = '20px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('🐾', btnX + btnSize/2, btnY + btnSize/2 + 6);
+    ctx.textAlign = 'left';
+    
+    // 记录按钮区域
+    game.uiButtons = game.uiButtons || {};
+    game.uiButtons.beast = { x: btnX, y: btnY, width: btnSize, height: btnSize, bgColor: '#4a5568', icon: '🐾' };
+}
+
+// v2.3.0: 绘制灵兽仓库界面
+function drawBeastWarehouseUI() {
+    if (!beastSystem.showWarehouse) return;
+    
+    // 半透明背景
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
+    
+    // 界面背景
+    const panelWidth = 360;
+    const panelHeight = 380;
+    const panelX = (CONFIG.width - panelWidth) / 2;
+    const panelY = (CONFIG.height - panelHeight) / 2;
+    
+    // 背景
+    const gradient = ctx.createLinearGradient(panelX, panelY, panelX, panelY + panelHeight);
+    gradient.addColorStop(0, '#2d1f4e');
+    gradient.addColorStop(1, '#1a1a2e');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(panelX, panelY, panelWidth, panelHeight);
+    
+    // 边框
+    ctx.strokeStyle = '#9f7aea';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(panelX, panelY, panelWidth, panelHeight);
+    
+    // 标题
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 20px Microsoft YaHei';
+    ctx.textAlign = 'center';
+    ctx.fillText('🐾 灵兽仓库', CONFIG.width / 2, panelY + 30);
+    
+    // 关闭按钮
+    const closeBtnX = panelX + panelWidth - 40;
+    const closeBtnY = panelY + 10;
+    ctx.fillStyle = '#ff6b6b';
+    ctx.font = 'bold 18px Microsoft YaHei';
+    ctx.fillText('✕', closeBtnX, closeBtnY + 20);
+    
+    // 显示灵兽蛋列表
+    const eggs = beastSystem.getEggs();
+    const startY = panelY + 60;
+    const itemHeight = 60;
+    
+    if (eggs.length === 0) {
+        ctx.fillStyle = '#aaa';
+        ctx.font = '16px Microsoft YaHei';
+        ctx.fillText('暂无灵兽蛋', CONFIG.width / 2, startY + 40);
+    } else {
+        ctx.fillStyle = '#ccc';
+        ctx.font = '14px Microsoft YaHei';
+        ctx.textAlign = 'left';
+        ctx.fillText('点击蛋进行孵化', panelX + 15, startY);
+        ctx.textAlign = 'center';
+        
+        // 绘制灵兽蛋列表
+        for (let i = 0; i < eggs.length && i < 4; i++) {
+            const egg = eggs[i];
+            const itemY = startY + 25 + i * itemHeight;
+            
+            // 蛋图标
+            drawBeastEggIcon(panelX + 40, itemY + 25, 20, egg.quality);
+            
+            // 蛋信息
+            ctx.fillStyle = egg.color;
+            ctx.font = 'bold 14px Microsoft YaHei';
+            ctx.textAlign = 'left';
+            ctx.fillText(egg.quality + ' ' + egg.realm + '灵兽蛋', panelX + 70, itemY + 20);
+            
+            // 孵化时间
+            ctx.fillStyle = '#aaa';
+            ctx.font = '12px Microsoft YaHei';
+            ctx.fillText('孵化时间: ' + egg.hatchTime + '秒', panelX + 70, itemY + 38);
+            
+            // 记录点击区域
+            game.uiButtons = game.uiButtons || {};
+            game.uiButtons['beastEgg_' + egg.id] = { 
+                x: panelX + 15, 
+                y: itemY, 
+                width: panelWidth - 30, 
+                height: itemHeight - 5,
+                type: 'beastEgg',
+                eggId: egg.id
+            };
+        }
+    }
+    
+    // 切换到灵兽栏按钮
+    const arenaBtnX = panelX + 20;
+    const arenaBtnY = panelY + panelHeight - 50;
+    const arenaBtnW = 140;
+    const arenaBtnH = 35;
+    
+    ctx.fillStyle = '#6b46c1';
+    ctx.fillRect(arenaBtnX, arenaBtnY, arenaBtnW, arenaBtnH);
+    ctx.strokeStyle = '#9f7aea';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(arenaBtnX, arenaBtnY, arenaBtnW, arenaBtnH);
+    
+    ctx.fillStyle = '#fff';
+    ctx.font = '14px Microsoft YaHei';
+    ctx.textAlign = 'center';
+    ctx.fillText('🐾 灵兽栏', arenaBtnX + arenaBtnW/2, arenaBtnY + 23);
+    
+    game.uiButtons = game.uiButtons || {};
+    game.uiButtons.beastArena = { x: arenaBtnX, y: arenaBtnY, width: arenaBtnW, height: arenaBtnH };
+    
+    ctx.textAlign = 'left';
+}
+
+// v2.3.0: 绘制灵兽栏界面
+function drawBeastArenaUI() {
+    if (!beastSystem.showBeastArena) return;
+    
+    // 半透明背景
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
+    
+    // 界面背景
+    const panelWidth = 360;
+    const panelHeight = 380;
+    const panelX = (CONFIG.width - panelWidth) / 2;
+    const panelY = (CONFIG.height - panelHeight) / 2;
+    
+    // 背景
+    const gradient = ctx.createLinearGradient(panelX, panelY, panelX, panelY + panelHeight);
+    gradient.addColorStop(0, '#2d1f4e');
+    gradient.addColorStop(1, '#1a1a2e');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(panelX, panelY, panelWidth, panelHeight);
+    
+    // 边框
+    ctx.strokeStyle = '#9f7aea';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(panelX, panelY, panelWidth, panelHeight);
+    
+    // 标题
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 20px Microsoft YaHei';
+    ctx.textAlign = 'center';
+    ctx.fillText('🐾 灵兽栏', CONFIG.width / 2, panelY + 30);
+    
+    // 关闭按钮
+    const closeBtnX = panelX + panelWidth - 40;
+    const closeBtnY = panelY + 10;
+    ctx.fillStyle = '#ff6b6b';
+    ctx.font = 'bold 18px Microsoft YaHei';
+    ctx.fillText('✕', closeBtnX, closeBtnY + 20);
+    
+    // 显示灵兽列表
+    const beasts = beastSystem.getBeasts();
+    const startY = panelY + 60;
+    const itemHeight = 70;
+    
+    if (beasts.length === 0) {
+        ctx.fillStyle = '#aaa';
+        ctx.font = '16px Microsoft YaHei';
+        ctx.fillText('暂无灵兽', CONFIG.width / 2, startY + 40);
+        ctx.fillText('击败怪物掉落灵兽蛋后孵化', CONFIG.width / 2, startY + 70);
+    } else {
+        // 绘制灵兽列表
+        for (let i = 0; i < beasts.length && i < 4; i++) {
+            const beast = beasts[i];
+            const itemY = startY + i * itemHeight;
+            const isActive = beastSystem.activeBeast && beastSystem.activeBeast.id === beast.id;
+            
+            // 选中背景
+            if (isActive) {
+                ctx.fillStyle = 'rgba(159, 122, 234, 0.3)';
+                ctx.fillRect(panelX + 10, itemY, panelWidth - 20, itemHeight - 5);
+            }
+            
+            // 灵兽图标
+            drawBeastIcon(panelX + 40, itemY + 30, 18, beast);
+            
+            // 灵兽信息
+            ctx.fillStyle = beast.color;
+            ctx.font = 'bold 14px Microsoft YaHei';
+            ctx.textAlign = 'left';
+            ctx.fillText(beast.name + ' [' + beast.quality + ']', panelX + 70, itemY + 20);
+            
+            // 属性
+            ctx.fillStyle = '#ccc';
+            ctx.font = '12px Microsoft YaHei';
+            ctx.fillText('攻击: ' + beast.attack + ' | 血量: ' + beast.hp, panelX + 70, itemY + 38);
+            
+            // 境界
+            ctx.fillStyle = '#888';
+            ctx.fillText('境界: ' + beast.realm, panelX + 70, itemY + 54);
+            
+            // 伙伴标识
+            if (isActive) {
+                ctx.fillStyle = '#ffd700';
+                ctx.font = 'bold 12px Microsoft YaHei';
+                ctx.fillText('✓ 伙伴', panelX + 250, itemY + 30);
+            }
+            
+            // 记录点击区域
+            game.uiButtons = game.uiButtons || {};
+            game.uiButtons['beast_' + beast.id] = { 
+                x: panelX + 15, 
+                y: itemY, 
+                width: panelWidth - 30, 
+                height: itemHeight - 5,
+                type: 'beast',
+                beastId: beast.id
+            };
+        }
+    }
+    
+    // 切换到仓库按钮
+    const warehouseBtnX = panelX + 20;
+    const warehouseBtnY = panelY + panelHeight - 50;
+    const warehouseBtnW = 140;
+    const warehouseBtnH = 35;
+    
+    ctx.fillStyle = '#6b46c1';
+    ctx.fillRect(warehouseBtnX, warehouseBtnY, warehouseBtnW, warehouseBtnH);
+    ctx.strokeStyle = '#9f7aea';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(warehouseBtnX, warehouseBtnY, warehouseBtnW, warehouseBtnH);
+    
+    ctx.fillStyle = '#fff';
+    ctx.font = '14px Microsoft YaHei';
+    ctx.textAlign = 'center';
+    ctx.fillText('🥚 灵兽仓库', warehouseBtnX + warehouseBtnW/2, warehouseBtnY + 23);
+    
+    game.uiButtons = game.uiButtons || {};
+    game.uiButtons.beastWarehouse = { x: warehouseBtnX, y: warehouseBtnY, width: warehouseBtnW, height: warehouseBtnH };
     
     ctx.textAlign = 'left';
 }

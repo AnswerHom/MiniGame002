@@ -250,6 +250,12 @@ class Enemy {
                 game.addDamageNumber(this.x + this.width / 2, this.y - this.height - 40, '+' + actualSpirit + '灵气', false, false, '#00ffff', true);
             }
             
+            // v2.3.0: 灵兽蛋掉落
+            const eggDrop = beastSystem.dropEgg(this.realm);
+            if (eggDrop) {
+                game.addDamageNumber(this.x + this.width / 2, this.y - this.height - 60, '🥚 灵兽蛋', false, false, eggDrop.color);
+            }
+            
             // v1.2.7: 怪物死亡音效
             game.playSound('hit');
             // v1.4.0: 添加死亡动画
